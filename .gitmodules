@@ -1,0 +1,7 @@
+[submodule "kernel"]
+	path = kernel
+	url = https://github.com/ilobilix/kernel
+[submodule "jinx"]
+	path = jinx
+	url = https://codeberg.org/mintsuki/jinx
+	shallow = true
