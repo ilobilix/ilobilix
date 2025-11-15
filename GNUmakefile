@@ -1,7 +1,7 @@
 # Copyright (C) 2024-2025  ilobilo
 
 ILOBILIX_ARCH ?= x86_64
-ILOBILIX_BUILD_TYPE ?= Release
+ILOBILIX_BUILD_TYPE ?= ReleaseDbg
 ILOBILIX_SYSCALL_LOG ?= OFF
 ILOBILIX_EXTRA_PANIC_MSG ?= ON
 ILOBILIX_MAX_UACPI_POINTS ?= OFF
@@ -10,34 +10,135 @@ ILOBILIX_UBSAN ?= OFF
 
 ILOBILIX_PACKAGES ?= base
 
+QEMU_ACCEL ?= ON
+QEMU_LOG ?= OFF
+QEMU_GDB ?= OFF
+
 override SOURCE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-override KERNEL_SOURCE_DIR := $(SOURCE_DIR)/kernel
+override KERNEL_SOURCE_DIR := $(SOURCE_DIR)/kernel/
 override JINX_EXEC := $(SOURCE_DIR)/jinx/jinx
 
-override KERNEL_BUILD_DIR := $(SOURCE_DIR)/build-kernel-$(ILOBILIX_ARCH)
-override JINX_BUILD_DIR := $(SOURCE_DIR)/build-jinx-$(ILOBILIX_ARCH)
-override JINX_DEST_DIR := $(JINX_BUILD_DIR)/sysroot
+override BUILD_DIR := $(SOURCE_DIR)/build-$(ILOBILIX_ARCH)
+override KERNEL_BUILD_DIR := $(BUILD_DIR)/kernel/
+override JINX_BUILD_DIR := $(BUILD_DIR)/jinx/
+override SYSROOT_DIR := $(BUILD_DIR)/sysroot/
+override ISO_DIR := $(BUILD_DIR)/iso/
+
+override LIMINE_DIR := $(KERNEL_SOURCE_DIR)/dependencies/limine/limine/
+override LIMINE_EXEC := $(KERNEL_BUILD_DIR)/dependencies/limine/limine
+override LIMINE_CONF := $(SOURCE_DIR)/support/limine.conf
+
+override KERNEL_ELF := $(KERNEL_BUILD_DIR)/kernel/source/kernel_elf
+override INITRAMFS_IMG := $(BUILD_DIR)/initramfs.tar
+override ISO_IMG := $(BUILD_DIR)/image.iso
+
+override OVMF_DIR := $(SOURCE_DIR)/ovmf-binaries/
+ifeq ($(ILOBILIX_ARCH),x86_64)
+override OVMF_BIN := $(OVMF_DIR)/OVMF_X64.fd
+endif
+ifeq ($(ILOBILIX_ARCH),aarch64)
+override OVMF_BIN := $(OVMF_DIR)/OVMF_AA64.fd
+endif
+
+override QEMU_EXEC := qemu-system-$(ILOBILIX_ARCH)
+override QEMU_ARGS += \
+	-m 512M \
+	-no-reboot \
+	-no-shutdown \
+    -rtc base=localtime \
+	-serial stdio \
+    -boot order=d,menu=on,splash-time=0
+
+ifeq ($(ILOBILIX_ARCH),x86_64)
+override QEMU_ARGS += \
+	-cpu max,migratable=off,+invtsc,+tsc-deadline \
+	-M q35,smm=off
+endif
+ifeq ($(ILOBILIX_ARCH),aarch64)
+override QEMU_ARGS += \
+	-cpu cortex-a72 \
+	-M virt \
+	-device ramfb
+endif
+
+ifeq ($(QEMU_ACCEL),ON)
+override QEMU_ARGS += -M accel=kvm:hvf:whpx:haxm:tcg
+endif
+ifeq ($(QEMU_LOG),ON)
+override QEMU_ARGS += -d int -D log.txt
+endif
+ifeq ($(QEMU_GDB),ON)
+override QEMU_ARGS += -s -S
+endif
 
 .PHONY: error
 error:
-	@echo "please specify a valid target"
+	@echo "Please RTFM"
 	@exit 1
 
 .PHONY: all
 all:
-	$(MAKE) kernel
-	$(MAKE) jinx
+	$(MAKE) $(KERNEL_ELF)
+	$(MAKE) $(SYSROOT_DIR)
+	$(MAKE) $(INITRAMFS_IMG)
+	$(MAKE) $(ISO_IMG)
 
 .PHONY: kernel
 kernel:
 	$(MAKE) setup-kernel
 	$(MAKE) build-kernel
 
+$(KERNEL_ELF): kernel
+
 .PHONY: jinx
 jinx:
 	$(MAKE) setup-jinx
 	$(MAKE) build-jinx
 	$(MAKE) install-jinx
+
+$(SYSROOT_DIR): jinx
+
+.PHONY: initramfs
+initramfs: $(SYSROOT_DIR)
+	tar --format posix -cf $(INITRAMFS_IMG) -C $(SYSROOT_DIR) ./
+
+$(INITRAMFS_IMG): initramfs
+
+.PHONY: iso
+iso:
+	$(MAKE) $(KERNEL_ELF)
+	$(MAKE) $(INITRAMFS_IMG)
+
+	rm -rf $(ISO_DIR)
+	mkdir -p $(ISO_DIR)/boot/limine
+	mkdir -p $(ISO_DIR)/EFI/BOOT
+
+	cp -v $(KERNEL_ELF) $(ISO_DIR)/boot/kernel.elf
+	cp -v $(INITRAMFS_IMG) $(ISO_DIR)/boot/initramfs.img
+	cp -v $(LIMINE_CONF) $(ISO_DIR)/boot
+
+ifeq ($(ILOBILIX_ARCH),x86_64)
+	cp -v $(LIMINE_DIR)/limine-bios.sys $(LIMINE_DIR)/limine-bios-cd.bin $(LIMINE_DIR)/limine-uefi-cd.bin $(ISO_DIR)/boot/limine/
+	cp -v $(LIMINE_DIR)/BOOTX64.EFI $(ISO_DIR)/EFI/BOOT/
+	cp -v $(LIMINE_DIR)/BOOTIA32.EFI $(ISO_DIR)/EFI/BOOT/
+	xorriso -as mkisofs -R -r -J -b boot/limine/limine-bios-cd.bin \
+		-no-emul-boot -boot-load-size 4 -boot-info-table -hfsplus \
+		-apm-block-size 2048 --efi-boot boot/limine/limine-uefi-cd.bin \
+		-efi-boot-part --efi-boot-image --protective-msdos-label \
+		$(ISO_DIR) -o $(ISO_IMG)
+	$(LIMINE_EXEC) bios-install $(ISO_IMG)
+endif
+ifeq ($(ILOBILIX_ARCH),aarch64)
+	cp -v $(LIMINE_DIR)/limine-uefi-cd.bin $(ISO_DIR)/boot/limine/
+	cp -v $(LIMINE_DIR)/BOOTAA64.EFI $(ISO_DIR)/EFI/BOOT/
+	xorriso -as mkisofs -R -r -J \
+		-hfsplus -apm-block-size 2048 \
+		--efi-boot boot/limine/limine-uefi-cd.bin \
+		-efi-boot-part --efi-boot-image --protective-msdos-label \
+		$(ISO_DIR) -o $(ISO_IMG)
+endif
+
+$(ISO_IMG): iso
 
 .PHONY: setup-kernel
 setup-kernel:
@@ -73,7 +174,7 @@ rebuild-jinx:
 
 .PHONY: install-jinx
 install-jinx:
-	cd $(JINX_BUILD_DIR) && $(JINX_EXEC) install $(JINX_DEST_DIR) $(ILOBILIX_PACKAGES)
+	cd $(JINX_BUILD_DIR) && $(JINX_EXEC) install $(SYSROOT_DIR) $(ILOBILIX_PACKAGES)
 
 .PHONY: distclean-kernel
 distclean-kernel:
@@ -82,3 +183,17 @@ distclean-kernel:
 .PHONY: distclean-jinx
 distclean-jinx:
 	rm -rf $(JINX_BUILD_DIR)
+
+# .PHONY: distclean
+# distclean: distclean-kernel distclean-jinx
+
+.PHONY: run-iso
+run-iso: run-iso-uefi
+
+.PHONY: run-iso-uefi
+run-iso-uefi:
+	$(QEMU_EXEC) $(QEMU_ARGS) -bios $(OVMF_BIN) -cdrom $(ISO_IMG)
+
+.PHONY: run-iso-bios
+run-iso-bios:
+	$(QEMU_EXEC) $(QEMU_ARGS) -cdrom $(ISO_IMG)
