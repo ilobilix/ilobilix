@@ -4,6 +4,17 @@ Hobby OS in modern C++
 ## License: [EUPL v1.2](LICENSE)
 
 ## Building And Running
+* Make sure you have following programs installed:
+  * ``clang``
+  * ``clang-scan-deps`` (``clang-tools-extra``)
+  * ``lld``
+  * ``llvm``
+  * ``make``
+  * ``cmake``
+  * ``ninja``
+  * ``xorriso``
+  * ``qemu-system``
+  * [Jinx dependencies](https://codeberg.org/mintsuki/jinx#dependencies)
 * ``git clone https://github.com/ilobilix/ilobilix --recursive``
 * ``make all`` to build the kernel and userspace
 * ``make run-iso`` to run the OS
