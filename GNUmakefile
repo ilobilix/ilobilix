@@ -78,11 +78,7 @@ error:
 	@exit 1
 
 .PHONY: all
-all:
-	$(MAKE) $(KERNEL_ELF)
-	$(MAKE) $(SYSROOT_DIR)
-	$(MAKE) $(INITRAMFS_IMG)
-	$(MAKE) $(ISO_IMG)
+all: $(ISO_IMG)
 
 .PHONY: kernel
 kernel:
@@ -192,6 +188,10 @@ distclean-jinx:
 .PHONY: clean-initramfs
 clean-initramfs:
 	rm $(INITRAMFS_IMG)
+
+.PHONY: clean-initramfs
+distclean-initramfs:
+	rm -rf $(INITRAMFS_IMG) $(MODULES_DIR)
 
 .PHONY: clean-iso
 clean-iso:
