@@ -29,6 +29,7 @@ override LIMINE_EXEC := $(KERNEL_BUILD_DIR)/dependencies/limine/limine
 override LIMINE_CONF := $(SOURCE_DIR)/support/limine.conf
 
 override KERNEL_ELF := $(KERNEL_BUILD_DIR)/kernel/source/kernel_elf
+override MODULES_DIR := $(KERNEL_BUILD_DIR)/modules/modules/
 override INITRAMFS_IMG := $(BUILD_DIR)/initramfs.tar
 override ISO_IMG := $(BUILD_DIR)/image.iso
 
@@ -100,6 +101,10 @@ $(SYSROOT_DIR): jinx
 
 .PHONY: initramfs
 initramfs: $(SYSROOT_DIR)
+	rm -rf $(SYSROOT_DIR)/usr/lib/modules
+	mkdir -p $(SYSROOT_DIR)/usr/lib/modules
+	-cp -rv $(MODULES_DIR)/noarch $(SYSROOT_DIR)/usr/lib/modules/
+	-cp -rv $(MODULES_DIR)/$(ILOBILIX_ARCH) $(SYSROOT_DIR)/usr/lib/modules/
 	tar --format posix -cf $(INITRAMFS_IMG) -C $(SYSROOT_DIR) ./
 
 $(INITRAMFS_IMG): initramfs
@@ -183,6 +188,14 @@ distclean-kernel:
 .PHONY: distclean-jinx
 distclean-jinx:
 	rm -rf $(JINX_BUILD_DIR)
+
+.PHONY: clean-initramfs
+clean-initramfs:
+	rm $(INITRAMFS_IMG)
+
+.PHONY: clean-iso
+clean-iso:
+	rm $(ISO_IMG)
 
 # .PHONY: distclean
 # distclean: distclean-kernel distclean-jinx
