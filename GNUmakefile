@@ -63,7 +63,11 @@ override QEMU_ARGS += \
 endif
 
 ifeq ($(QEMU_ACCEL),ON)
+ifneq ($(QEMU_LOG),ON)
+ifneq ($(QEMU_GDB),ON)
 override QEMU_ARGS += -M accel=kvm:hvf:whpx:haxm:tcg
+endif
+endif
 endif
 ifeq ($(QEMU_LOG),ON)
 override QEMU_ARGS += -d int -D log.txt
