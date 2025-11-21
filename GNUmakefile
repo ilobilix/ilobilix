@@ -42,6 +42,8 @@ ifeq ($(ILOBILIX_ARCH),aarch64)
 override OVMF_BIN := $(OVMF_DIR)/OVMF_AA64.fd
 endif
 
+override CXXFILT_EXE := llvm-cxxfilt --no-params
+
 override QEMU_EXEC := qemu-system-$(ILOBILIX_ARCH)
 override QEMU_ARGS += \
 	-m 512M \
@@ -102,7 +104,7 @@ jinx:
 $(SYSROOT_DIR): jinx
 
 .PHONY: initramfs
-initramfs: $(SYSROOT_DIR)
+initramfs: $(KERNEL_ELF) $(SYSROOT_DIR)
 	rm -rf $(SYSROOT_DIR)/usr/lib/modules
 	mkdir -p $(SYSROOT_DIR)/usr/lib/modules
 	-cp -rv $(MODULES_DIR)/noarch $(SYSROOT_DIR)/usr/lib/modules/
@@ -112,10 +114,7 @@ initramfs: $(SYSROOT_DIR)
 $(INITRAMFS_IMG): initramfs
 
 .PHONY: iso
-iso:
-	$(MAKE) $(KERNEL_ELF)
-	$(MAKE) $(INITRAMFS_IMG)
-
+iso: $(INITRAMFS_IMG)
 	rm -rf $(ISO_DIR)
 	mkdir -p $(ISO_DIR)/boot/limine
 	mkdir -p $(ISO_DIR)/EFI/BOOT
@@ -183,6 +182,10 @@ rebuild-jinx:
 install-jinx:
 	cd $(JINX_BUILD_DIR) && $(JINX_EXEC) install $(SYSROOT_DIR) $(ILOBILIX_PACKAGES)
 
+.PHONY: clean-jinx
+clean-jinx:
+	rm -rf $(SYSROOT_DIR)
+
 .PHONY: distclean-kernel
 distclean-kernel:
 	rm -rf $(KERNEL_BUILD_DIR)
@@ -211,8 +214,8 @@ run-iso: run-iso-uefi
 
 .PHONY: run-iso-uefi
 run-iso-uefi:
-	$(QEMU_EXEC) $(QEMU_ARGS) -bios $(OVMF_BIN) -cdrom $(ISO_IMG)
+	$(QEMU_EXEC) $(QEMU_ARGS) -bios $(OVMF_BIN) -cdrom $(ISO_IMG) | $(CXXFILT_EXE)
 
 .PHONY: run-iso-bios
 run-iso-bios:
-	$(QEMU_EXEC) $(QEMU_ARGS) -cdrom $(ISO_IMG)
+	$(QEMU_EXEC) $(QEMU_ARGS) -cdrom $(ISO_IMG) | $(CXXFILT_EXE)
