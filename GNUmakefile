@@ -13,6 +13,7 @@ ILOBILIX_PACKAGES ?= base
 QEMU_ACCEL ?= ON
 QEMU_LOG ?= OFF
 QEMU_GDB ?= OFF
+QEMU_SMP ?= 6
 
 override SOURCE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 override KERNEL_SOURCE_DIR := $(SOURCE_DIR)/kernel/
@@ -44,6 +45,7 @@ endif
 override QEMU_EXEC := qemu-system-$(ILOBILIX_ARCH)
 override QEMU_ARGS += \
 	-m 512M \
+	-smp $(QEMU_SMP) \
 	-no-reboot \
 	-no-shutdown \
     -rtc base=localtime \

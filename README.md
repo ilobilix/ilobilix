@@ -31,6 +31,7 @@ Hobby OS in modern C++
 * ``ILOBILIX_UBSAN=[ON|<OFF>]``
 
 ### Run Options
+* ``QEMU_SMP=<6>``
 * ``QEMU_ACCEL=[<ON>|OFF]``
 * ``QEMU_LOG=[ON|<OFF>]``
 * ``QEMU_GDB=[ON|<OFF>]``
