@@ -13,10 +13,9 @@ prepare() {
 }
 
 configure() {
-    gl_cv_host_operating_system="Ilobilix" \
     autotools_configure \
         CFLAGS="$TARGET_CFLAGS -DSLOW_BUT_NO_HACKS" \
-        --enable-no-install-program="mkfifo,runcon,chroot"
+        --enable-no-install-program="mkfifo,runcon,chroot,uptime,kill"
 }
 
 build() {

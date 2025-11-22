@@ -1597,10 +1597,10 @@ EOF
     *:Unleashed:*:*)
 	GUESS=$UNAME_MACHINE-unknown-unleashed$UNAME_RELEASE
 	;;
-    x86_64:[Ii]ronclad:*:*|i?86:[Ii]ronclad:*:*)
+    x86_64:[Ii]lobilix:*:*|i?86:[Ii]lobilix:*:*)
 	GUESS=$UNAME_MACHINE-pc-ilobilix-mlibc
 	;;
-    *:[Ii]ronclad:*:*)
+    *:[Ii]lobilix:*:*)
 	GUESS=$UNAME_MACHINE-unknown-ilobilix-mlibc
 	;;
 esac

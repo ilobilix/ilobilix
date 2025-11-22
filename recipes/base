@@ -3,4 +3,4 @@
 name=base
 version=0.0
 revision=1
-deps="base-files bash file"
+deps="base-files core-libs bash file"

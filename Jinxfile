@@ -12,7 +12,8 @@ TARGET_CFLAGS="$HOST_CFLAGS"
 TARGET_CXXFLAGS="$HOST_CXXFLAGS"
 TARGET_LDFLAGS="$HOST_LDFLAGS"
 
-OS_TRIPLET=${JINX_ARCH}-ilobilix-mlibc
+OS_NAME="linux"
+OS_TRIPLET=${JINX_ARCH}-${OS_NAME}-mlibc
 
 case "${JINX_ARCH}" in
     x86_64)
@@ -142,6 +143,7 @@ meson_configure_noflags() {
     fi
 
         JINX_ARCH=${JINX_ARCH} \
+        OS_NAME=${OS_NAME} \
         OS_TRIPLET=${OS_TRIPLET} \
         sysroot_dir=${sysroot_dir} \
     envsubst < "${base_dir}/support/meson.cross-file" > ./cross-file.txt

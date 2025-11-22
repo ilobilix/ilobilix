@@ -25,6 +25,10 @@ override JINX_BUILD_DIR := $(BUILD_DIR)/jinx/
 override SYSROOT_DIR := $(BUILD_DIR)/sysroot/
 override ISO_DIR := $(BUILD_DIR)/iso/
 
+ifdef OVERRIDE_SYSROOT_DIR
+override SYSROOT_DIR := $(abspath $(OVERRIDE_SYSROOT_DIR))
+endif
+
 override LIMINE_DIR := $(KERNEL_SOURCE_DIR)/dependencies/limine/limine/
 override LIMINE_EXEC := $(KERNEL_BUILD_DIR)/dependencies/limine/limine
 override LIMINE_CONF := $(SOURCE_DIR)/support/limine.conf
@@ -167,24 +171,34 @@ clean-kernel:
 
 .PHONY: setup-jinx
 setup-jinx:
+ifndef OVERRIDE_SYSROOT_DIR
 	mkdir -p $(JINX_BUILD_DIR)
 	-cd $(JINX_BUILD_DIR) && $(JINX_EXEC) init $(SOURCE_DIR) JINX_ARCH=$(ILOBILIX_ARCH)
+endif
 
 .PHONY: build-jinx
 build-jinx:
+ifndef OVERRIDE_SYSROOT_DIR
 	cd $(JINX_BUILD_DIR) && $(JINX_EXEC) build $(ILOBILIX_PACKAGES)
+endif
 
 .PHONY: rebuild-jinx
 rebuild-jinx:
+ifndef OVERRIDE_SYSROOT_DIR
 	cd $(JINX_BUILD_DIR) && $(JINX_EXEC) rebuild $(ILOBILIX_PACKAGES)
+endif
 
 .PHONY: install-jinx
 install-jinx:
+ifndef OVERRIDE_SYSROOT_DIR
 	cd $(JINX_BUILD_DIR) && $(JINX_EXEC) install $(SYSROOT_DIR) $(ILOBILIX_PACKAGES)
+endif
 
 .PHONY: clean-jinx
 clean-jinx:
+ifndef OVERRIDE_SYSROOT_DIR
 	rm -rf $(SYSROOT_DIR)
+endif
 
 .PHONY: distclean-kernel
 distclean-kernel:
