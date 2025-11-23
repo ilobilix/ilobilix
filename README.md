@@ -20,8 +20,10 @@ Hobby OS in modern C++
 * ``make run-iso`` to run the OS
 
 ## Configurable Environment Variables
-### Build Options
+### Shared Options
 * ``ILOBILIX_ARCH=[<x86_64>|aarch64]``
+
+### Build-Only Options
 * ``ILOBILIX_PACKAGES=[<base>|coreutils|...]``
 * ``ILOBILIX_BUILD_TYPE=[Release|<ReleaseDbg>|Debug]``
 * ``ILOBILIX_SYSCALL_LOG=[ON|<OFF>]``
@@ -30,7 +32,7 @@ Hobby OS in modern C++
 * ``ILOBILIX_LIMINE_MP=[<ON>|OFF]``
 * ``ILOBILIX_UBSAN=[ON|<OFF>]``
 
-### Run Options
+### Run-Only Options
 * ``QEMU_SMP=<6>``
 * ``QEMU_ACCEL=[<ON>|OFF]``
 * ``QEMU_LOG=[ON|<OFF>]``

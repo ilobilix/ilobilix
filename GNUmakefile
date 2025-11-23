@@ -93,22 +93,20 @@ error:
 all: $(ISO_IMG)
 
 .PHONY: kernel
-kernel:
-	$(MAKE) setup-kernel
-	$(MAKE) build-kernel
+.NOTPARALLEL:
+kernel: setup-kernel build-kernel
 
 $(KERNEL_ELF): kernel
 
 .PHONY: jinx
-jinx:
-	$(MAKE) setup-jinx
-	$(MAKE) build-jinx
-	$(MAKE) install-jinx
+.NOTPARALLEL:
+jinx: setup-jinx build-jinx install-jinx
 
 $(SYSROOT_DIR): jinx
 
 .PHONY: initramfs
-initramfs: $(KERNEL_ELF) $(SYSROOT_DIR)
+.NOTPARALLEL:
+initramfs: $(SYSROOT_DIR) $(KERNEL_ELF)
 	rm -rf $(SYSROOT_DIR)/usr/lib/modules
 	mkdir -p $(SYSROOT_DIR)/usr/lib/modules
 	-cp -rv $(MODULES_DIR)/noarch $(SYSROOT_DIR)/usr/lib/modules/
