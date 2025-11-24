@@ -3,4 +3,5 @@
 name=base
 version=0.0
 revision=1
-deps="base-files core-libs bash file"
+# deps="base-files bash bzip2 core-libs coreutils file gettext lz4 ncurses pkg-config readline xz zlib zstd"
+deps="base-files bash coreutils file ncurses readline"
