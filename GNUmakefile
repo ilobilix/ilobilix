@@ -17,17 +17,21 @@ QEMU_SMP ?= 6
 
 override SOURCE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 override KERNEL_SOURCE_DIR := $(SOURCE_DIR)/kernel/
-override JINX_EXEC := $(SOURCE_DIR)/jinx/jinx
+override BUILDROOT_SOURCE_DIR := $(SOURCE_DIR)/buildroot/
 
 override BUILD_DIR := $(SOURCE_DIR)/build-$(ILOBILIX_ARCH)
 override KERNEL_BUILD_DIR := $(BUILD_DIR)/kernel/
-override JINX_BUILD_DIR := $(BUILD_DIR)/jinx/
+override BUILDROOT_BUILD_DIR := $(BUILD_DIR)/buildroot/
 override SYSROOT_DIR := $(BUILD_DIR)/sysroot/
 override ISO_DIR := $(BUILD_DIR)/iso/
 
 ifdef OVERRIDE_SYSROOT_DIR
 override SYSROOT_DIR := $(abspath $(OVERRIDE_SYSROOT_DIR))
 endif
+
+override BUILDROOT := make -C $(BUILDROOT_SOURCE_DIR) O=$(BUILDROOT_BUILD_DIR)
+override BUILDROOT_CONFIG :=  $(SOURCE_DIR)/support/buildroot-$(ILOBILIX_ARCH).config
+override BUILDROOT_OUT_TAR := $(BUILDROOT_BUILD_DIR)/images/rootfs.tar
 
 override LIMINE_DIR := $(KERNEL_SOURCE_DIR)/dependencies/limine/limine/
 override LIMINE_EXEC := $(KERNEL_BUILD_DIR)/dependencies/limine/limine
@@ -93,43 +97,48 @@ error:
 all: $(ISO_IMG)
 
 .PHONY: kernel
-.NOTPARALLEL:
-kernel: setup-kernel build-kernel
+kernel:
+	$(MAKE) setup-kernel
+	$(MAKE) build-kernel
 
 $(KERNEL_ELF): kernel
 
-.PHONY: jinx
-.NOTPARALLEL:
-jinx: setup-jinx build-jinx install-jinx
+.PHONY: sysroot
+sysroot:
+	$(MAKE) setup-sysroot
+	$(MAKE) build-sysroot
+	$(MAKE) install-sysroot
 
-$(SYSROOT_DIR): jinx
+$(SYSROOT_DIR):
+	$(MAKE) sysroot
 
 .PHONY: initramfs
 .NOTPARALLEL:
-initramfs: $(SYSROOT_DIR) $(KERNEL_ELF)
-	rm -rf $(SYSROOT_DIR)/usr/lib/modules
-	mkdir -p $(SYSROOT_DIR)/usr/lib/modules
-	-cp -rv $(MODULES_DIR)/noarch $(SYSROOT_DIR)/usr/lib/modules/
-	-cp -rv $(MODULES_DIR)/$(ILOBILIX_ARCH) $(SYSROOT_DIR)/usr/lib/modules/
-	tar --format posix -cf $(INITRAMFS_IMG) -C $(SYSROOT_DIR) ./
+initramfs: $(SYSROOT_DIR) kernel # $(KERNEL_ELF)
+	@rm -rvf $(SYSROOT_DIR)/usr/lib/modules
+	@mkdir -vp $(SYSROOT_DIR)/usr/lib/modules
+	@-cp -rv $(MODULES_DIR)/noarch $(SYSROOT_DIR)/usr/lib/modules/
+	@-cp -rv $(MODULES_DIR)/$(ILOBILIX_ARCH) $(SYSROOT_DIR)/usr/lib/modules/
+	tar --format ustar -cf $(INITRAMFS_IMG) -C $(SYSROOT_DIR) ./
 
-$(INITRAMFS_IMG): initramfs
+$(INITRAMFS_IMG):
+	$(MAKE) initramfs
 
 .PHONY: iso
-iso: $(INITRAMFS_IMG)
-	rm -rf $(ISO_DIR)
-	mkdir -p $(ISO_DIR)/boot/limine
-	mkdir -p $(ISO_DIR)/EFI/BOOT
+iso: initramfs # $(INITRAMFS_IMG)
+	@rm -rvf $(ISO_DIR)
+	@mkdir -vp $(ISO_DIR)/boot/limine
+	@mkdir -vp $(ISO_DIR)/EFI/BOOT
 
-	cp -v $(KERNEL_ELF) $(ISO_DIR)/boot/kernel.elf
-	cp -v $(INITRAMFS_IMG) $(ISO_DIR)/boot/initramfs.img
-	cp -v $(LIMINE_CONF) $(ISO_DIR)/boot
+	@cp -v $(KERNEL_ELF) $(ISO_DIR)/boot/kernel.elf
+	@cp -v $(INITRAMFS_IMG) $(ISO_DIR)/boot/initramfs.img
+	@cp -v $(LIMINE_CONF) $(ISO_DIR)/boot
 
 ifeq ($(ILOBILIX_ARCH),x86_64)
-	cp -v $(LIMINE_DIR)/limine-bios.sys $(LIMINE_DIR)/limine-bios-cd.bin $(LIMINE_DIR)/limine-uefi-cd.bin $(ISO_DIR)/boot/limine/
-	cp -v $(LIMINE_DIR)/BOOTX64.EFI $(ISO_DIR)/EFI/BOOT/
-	cp -v $(LIMINE_DIR)/BOOTIA32.EFI $(ISO_DIR)/EFI/BOOT/
-	xorriso -as mkisofs -R -r -J -b boot/limine/limine-bios-cd.bin \
+	@cp -v $(LIMINE_DIR)/limine-bios.sys $(LIMINE_DIR)/limine-bios-cd.bin $(LIMINE_DIR)/limine-uefi-cd.bin $(ISO_DIR)/boot/limine/
+	@cp -v $(LIMINE_DIR)/BOOTX64.EFI $(ISO_DIR)/EFI/BOOT/
+	@cp -v $(LIMINE_DIR)/BOOTIA32.EFI $(ISO_DIR)/EFI/BOOT/
+	@xorriso -as mkisofs -R -r -J -b boot/limine/limine-bios-cd.bin \
 		-no-emul-boot -boot-load-size 4 -boot-info-table -hfsplus \
 		-apm-block-size 2048 --efi-boot boot/limine/limine-uefi-cd.bin \
 		-efi-boot-part --efi-boot-image --protective-msdos-label \
@@ -137,16 +146,17 @@ ifeq ($(ILOBILIX_ARCH),x86_64)
 	$(LIMINE_EXEC) bios-install $(ISO_IMG)
 endif
 ifeq ($(ILOBILIX_ARCH),aarch64)
-	cp -v $(LIMINE_DIR)/limine-uefi-cd.bin $(ISO_DIR)/boot/limine/
-	cp -v $(LIMINE_DIR)/BOOTAA64.EFI $(ISO_DIR)/EFI/BOOT/
-	xorriso -as mkisofs -R -r -J \
+	@cp -v $(LIMINE_DIR)/limine-uefi-cd.bin $(ISO_DIR)/boot/limine/
+	@cp -v $(LIMINE_DIR)/BOOTAA64.EFI $(ISO_DIR)/EFI/BOOT/
+	@xorriso -as mkisofs -R -r -J \
 		-hfsplus -apm-block-size 2048 \
 		--efi-boot boot/limine/limine-uefi-cd.bin \
 		-efi-boot-part --efi-boot-image --protective-msdos-label \
 		$(ISO_DIR) -o $(ISO_IMG)
 endif
 
-$(ISO_IMG): iso
+$(ISO_IMG):
+	$(MAKE) iso
 
 .PHONY: setup-kernel
 setup-kernel:
@@ -167,59 +177,61 @@ build-kernel:
 clean-kernel:
 	cmake --build $(KERNEL_BUILD_DIR) --target clean
 
-.PHONY: setup-jinx
-setup-jinx:
+.PHONY: config-sysroot
+config-sysroot:
+	$(BUILDROOT) menuconfig
+	@cp -v $(BUILDROOT_BUILD_DIR)/.config $(BUILDROOT_CONFIG)
+	$(MAKE) setup-sysroot
+
+.PHONY: setup-sysroot
+setup-sysroot:
 ifndef OVERRIDE_SYSROOT_DIR
-	mkdir -p $(JINX_BUILD_DIR)
-	-cd $(JINX_BUILD_DIR) && $(JINX_EXEC) init $(SOURCE_DIR) JINX_ARCH=$(ILOBILIX_ARCH)
+	@mkdir -vp $(BUILDROOT_BUILD_DIR)
+	@cp -v $(BUILDROOT_CONFIG) $(BUILDROOT_BUILD_DIR)/.config
+	$(BUILDROOT) oldconfig
 endif
 
-.PHONY: build-jinx
-build-jinx:
+.PHONY: build-sysroot
+build-sysroot:
 ifndef OVERRIDE_SYSROOT_DIR
-	cd $(JINX_BUILD_DIR) && $(JINX_EXEC) build $(ILOBILIX_PACKAGES)
+	$(BUILDROOT) all
 endif
 
-.PHONY: rebuild-jinx
-rebuild-jinx:
+.PHONY: install-sysroot
+install-sysroot:
 ifndef OVERRIDE_SYSROOT_DIR
-	cd $(JINX_BUILD_DIR) && $(JINX_EXEC) rebuild $(ILOBILIX_PACKAGES)
+	@mkdir -vp $(SYSROOT_DIR)
+	tar xf $(BUILDROOT_OUT_TAR) -C $(SYSROOT_DIR)
 endif
 
-.PHONY: install-jinx
-install-jinx:
+.PHONY: clean-sysroot
+clean-sysroot:
 ifndef OVERRIDE_SYSROOT_DIR
-	cd $(JINX_BUILD_DIR) && $(JINX_EXEC) install $(SYSROOT_DIR) $(ILOBILIX_PACKAGES)
-endif
-
-.PHONY: clean-jinx
-clean-jinx:
-ifndef OVERRIDE_SYSROOT_DIR
-	rm -rf $(SYSROOT_DIR)
+	$(BUILDROOT) clean
 endif
 
 .PHONY: distclean-kernel
 distclean-kernel:
-	rm -rf $(KERNEL_BUILD_DIR)
+	@rm -rvf $(KERNEL_BUILD_DIR)
 
-.PHONY: distclean-jinx
-distclean-jinx:
-	rm -rf $(JINX_BUILD_DIR)
+.PHONY: distclean-sysroot
+distclean-sysroot:
+	$(BUILDROOT) distclean
 
 .PHONY: clean-initramfs
 clean-initramfs:
-	rm $(INITRAMFS_IMG)
+	@rm -v $(INITRAMFS_IMG)
 
 .PHONY: clean-initramfs
 distclean-initramfs:
-	rm -rf $(INITRAMFS_IMG) $(MODULES_DIR)
+	@rm -rvf $(INITRAMFS_IMG) $(MODULES_DIR)
 
 .PHONY: clean-iso
 clean-iso:
-	rm $(ISO_IMG)
+	@rm -v $(ISO_IMG)
 
 # .PHONY: distclean
-# distclean: distclean-kernel distclean-jinx
+# distclean: distclean-kernel distclean-sysroot
 
 .PHONY: run-iso
 run-iso: run-iso-uefi

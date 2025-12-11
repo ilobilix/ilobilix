@@ -1,7 +1,7 @@
 /.*
 !/.git*
 
-/build*
+/build-*
 /sources
 
 /serial.txt
