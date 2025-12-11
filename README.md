@@ -14,7 +14,7 @@ Hobby OS in modern C++
   * ``ninja``
   * ``xorriso``
   * ``qemu-system``
-  * [Jinx dependencies](https://codeberg.org/mintsuki/jinx#dependencies)
+  * [Buildroot dependencies](https://buildroot.org/downloads/manual/manual.html#requirement)
 * ``git clone https://github.com/ilobilix/ilobilix --recursive``
 * ``make all`` to build the kernel and userspace
 * ``make run-iso`` to run the OS
