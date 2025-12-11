@@ -29,6 +29,8 @@ ifdef OVERRIDE_SYSROOT_DIR
 override SYSROOT_DIR := $(abspath $(OVERRIDE_SYSROOT_DIR))
 endif
 
+override SYSROOT_SKELETON_DIR := $(SOURCE_DIR)/support/skeleton/
+
 override BUILDROOT := make -C $(BUILDROOT_SOURCE_DIR) O=$(BUILDROOT_BUILD_DIR)
 override BUILDROOT_CONFIG :=  $(SOURCE_DIR)/support/buildroot-$(ILOBILIX_ARCH).config
 override BUILDROOT_OUT_TAR := $(BUILDROOT_BUILD_DIR)/images/rootfs.tar
@@ -180,8 +182,8 @@ clean-kernel:
 .PHONY: config-sysroot
 config-sysroot:
 	$(BUILDROOT) menuconfig
+	sed -i 's|^BR2_ROOTFS_SKELETON_CUSTOM_PATH=".*"$$|BR2_ROOTFS_SKELETON_CUSTOM_PATH="$(SYSROOT_SKELETON_DIR)"|' $(BUILDROOT_BUILD_DIR)/.config
 	@cp -v $(BUILDROOT_BUILD_DIR)/.config $(BUILDROOT_CONFIG)
-	$(MAKE) setup-sysroot
 
 .PHONY: setup-sysroot
 setup-sysroot:

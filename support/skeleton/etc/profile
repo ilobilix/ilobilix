@@ -1,0 +1,33 @@
+# /etc/profile
+
+export PATH=@PATH@
+
+if [ "$PS1" ]; then
+	if [ "`id -u`" -eq 0 ]; then
+		export PS1='# '
+	else
+		export PS1='$ '
+	fi
+fi
+
+export EDITOR='/bin/vi'
+
+# Source configuration files from /etc/profile.d
+if test -d /etc/profile.d/; then
+	for profile in /etc/profile.d/*.sh; do
+		test -r "$profile" && . "$profile"
+	done
+	unset profile
+fi
+
+if test "$BASH" &&\
+   test "$PS1" &&\
+   test -z "$POSIXLY_CORRECT" &&\
+   test "${0#-}" != sh &&\
+   test -r /etc/bash.bashrc
+then
+	. /etc/bash.bashrc
+fi
+
+unset TERMCAP
+unset MANPATH
