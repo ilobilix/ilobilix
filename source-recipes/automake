@@ -1,0 +1,6 @@
+#!/bin/sh
+
+name=automake
+version=1.18.1
+tarball_url="https://ftpmirror.gnu.org/gnu/automake/automake-${version}.tar.xz"
+tarball_blake2b="4461062a4d596dd87caec7d388449f5f8fe7a4faede8fd0d77d1fb3bb5d23caabb3b715fbb9f29f33326bec527f3d8da6251d9282d4007cef9af146d28fe96cf"

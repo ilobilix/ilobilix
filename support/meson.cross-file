@@ -1,0 +1,13 @@
+[binaries]
+c = '${OS_TRIPLET}-gcc'
+cpp = '${OS_TRIPLET}-g++'
+ar = '${OS_TRIPLET}-ar'
+nm = '${OS_TRIPLET}-nm'
+strip = '${OS_TRIPLET}-strip'
+pkg-config = '${OS_TRIPLET}-pkg-config'
+
+[host_machine]
+system = 'linux'
+cpu_family = '${JINX_ARCH}'
+cpu = '${JINX_ARCH}'
+endian = 'little'

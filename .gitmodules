@@ -1,11 +1,11 @@
 [submodule "kernel"]
 	path = kernel
 	url = https://github.com/ilobilix/kernel
-[submodule "ovmf-binaries"]
-	path = ovmf-binaries
+[submodule "support/ovmf-binaries"]
+	path = support/ovmf-binaries
 	url = https://github.com/ilobilo/ovmf-binaries
 	shallow = true
-[submodule "buildroot"]
-	path = buildroot
-	url = https://gitlab.com/buildroot.org/buildroot
+[submodule "support/jinx"]
+	path = support/jinx
+	url = https://codeberg.org/mintsuki/jinx
 	shallow = true

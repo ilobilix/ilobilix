@@ -1,0 +1,6 @@
+#!/bin/sh
+
+name=linux
+version=6.19
+tarball_url="https://cdn.kernel.org/pub/linux/kernel/v${version%%.*}.x/linux-${version}.tar.xz"
+tarball_blake2b="d1551c058e9a1201a0fa769b427255f13bb0d73fdd384e2c0302956cc9a1eeba255b013fa87a15fdad508bc00fdae2085590572c76cfe20fe2af31ba87b7d289"

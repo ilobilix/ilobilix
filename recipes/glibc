@@ -1,0 +1,39 @@
+#!/bin/sh
+
+name=glibc
+from_source=glibc
+revision=1
+hostdeps="gcc-stage2"
+deps="linux-headers"
+
+configure() {
+    cp -rp "${source_dir}"/. ./
+    mkdir -p build && cd build
+
+    echo "rootsbindir=/usr/sbin" > configparms
+
+        CFLAGS="$HOST_CFLAGS" \
+        CXXFLAGS="$HOST_CXXFLAGS" \
+        LDFLAGS="$HOST_LDFLAGS" \
+    ../configure \
+        --prefix="${prefix}" \
+        --host=${OS_TRIPLET} \
+        --with-headers="${sysroot_dir}${prefix}/include" \
+        --disable-multilib \
+        --disable-werror \
+        --disable-nscd \
+        --enable-shared \
+        --enable-kernel=5.4 \
+        libc_cv_slibdir="${prefix}/lib" \
+        libc_cv_cxx_link_ok=no
+}
+
+build() {
+    cd build
+    make -j${parallelism}
+}
+
+package() {
+    cd build
+    DESTDIR="${dest_dir}" make install
+}

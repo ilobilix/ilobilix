@@ -1,0 +1,137 @@
+#!/bin/sh
+
+JINX_MAJOR_VER=0.8
+JINX_DEBIAN_SNAPSHOT=20260219T142510Z
+JINX_BASE_PACKAGES="build-essential git autopoint flex bison make cmake meson ninja-build file gettext m4 mercurial perl python3 texinfo which xmlto xsltproc doxygen"
+
+HOST_CFLAGS="-O2 -pipe"
+HOST_CXXFLAGS="${HOST_CFLAGS} -Wp,-D_GLIBCXX_ASSERTIONS"
+HOST_LDFLAGS="-Wl,-O1 -Wl,--sort-common -Wl,--as-needed -Wl,-z,now"
+
+TARGET_CFLAGS="$HOST_CFLAGS"
+TARGET_CXXFLAGS="$HOST_CXXFLAGS"
+TARGET_LDFLAGS="$HOST_LDFLAGS"
+
+OS_TRIPLET=${JINX_ARCH}-linux-gnu
+LINUX_ARCH=${JINX_ARCH}
+
+case "${JINX_ARCH}" in
+    x86_64)
+        TARGET_CFLAGS="$TARGET_CFLAGS -march=x86-64 -mtune=generic -fcf-protection -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer"
+        TARGET_CXXFLAGS="$TARGET_CXXFLAGS -march=x86-64 -mtune=generic -fcf-protection -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer"
+        TARGET_LDFLAGS="$TARGET_LDFLAGS -Wl,-z,pack-relative-relocs"
+        ;;
+    aarch64)
+        LINUX_ARCH="arm64"
+        ;;
+esac
+
+post_package_strip() {
+    if [ -z "$strip_command" ]; then
+        strip_command="${OS_TRIPLET}-strip"
+    fi
+
+    for f in $(find "${dest_dir}"); do
+        if file "$f" | grep 'not stripped' >/dev/null; then
+            echo "* stripping '$f'..."
+            stripped_file="$(mktemp)"
+            ${strip_command} "$f" -o "$stripped_file"
+            chmod --reference="$f" "$stripped_file"
+            mv -f "$stripped_file" "$f"
+        fi
+    done
+}
+
+autotools_configure() {
+        CFLAGS="$TARGET_CFLAGS" \
+        CXXFLAGS="$TARGET_CXXFLAGS" \
+        LDFLAGS="$TARGET_LDFLAGS" \
+    autotools_configure_noflags "$@"
+}
+
+autotools_configure_noflags() {
+    if [ -z "${configure_script_path}" ]; then
+        configure_script_path="${source_dir}/configure"
+    fi
+
+    ${configure_script_path} \
+        --host=${OS_TRIPLET} \
+        --with-sysroot=${sysroot_dir} \
+        --prefix=${prefix} \
+        --sysconfdir=/etc \
+        --localstatedir=/var \
+        --bindir=${prefix}/bin \
+        --sbindir=${prefix}/bin \
+        --libdir=${prefix}/lib \
+        --disable-static \
+        --enable-shared \
+        "$@"
+}
+
+meson_configure() {
+        CFLAGS="$TARGET_CFLAGS" \
+        CXXFLAGS="$TARGET_CXXFLAGS" \
+        LDFLAGS="$TARGET_LDFLAGS" \
+    meson_configure_noflags "$@"
+}
+
+meson_configure_noflags() {
+    if [ -z "${meson_source_dir}" ]; then
+        meson_source_dir="${source_dir}"
+    fi
+
+        JINX_ARCH=${JINX_ARCH} \
+        OS_NAME=${OS_NAME} \
+        OS_TRIPLET=${OS_TRIPLET} \
+        sysroot_dir=${sysroot_dir} \
+    envsubst < "${base_dir}/support/meson.cross-file" > ./cross-file.txt
+
+    pwd
+    ls
+
+    meson setup "${meson_source_dir}" \
+        --cross-file=cross-file.txt \
+        --prefix=${prefix} \
+        --sysconfdir=/etc \
+        --localstatedir=/var \
+        --libdir=lib \
+        --sbindir=bin \
+        --buildtype=release \
+        -Ddefault_library=shared \
+        "$@"
+}
+
+cmake_configure() {
+        CFLAGS="$TARGET_CFLAGS" \
+        CXXFLAGS="$TARGET_CXXFLAGS" \
+        LDFLAGS="$TARGET_LDFLAGS" \
+    cmake_configure_noflags \
+        "$@"
+}
+
+cmake_configure_noflags() {
+    if [ -z "${cmake_source_dir}" ]; then
+        cmake_source_dir="${source_dir}"
+    fi
+
+        OS_TRIPLET=${OS_TRIPLET} \
+        JINX_ARCH=${JINX_ARCH} \
+        sysroot_dir=${sysroot_dir} \
+    envsubst '$OS_TRIPLET $JINX_ARCH $sysroot_dir' < "${base_dir}/support/CMakeToolchain.txt" > $(pwd -P)/cross-file.txt
+
+    cmake "${cmake_source_dir}" \
+        -DCMAKE_TOOLCHAIN_FILE="$(pwd -P)/cross-file.txt" \
+        -DCMAKE_INSTALL_PREFIX=${prefix} \
+        -DCMAKE_INSTALL_SYSCONFDIR=/etc \
+        -DCMAKE_INSTALL_LOCALSTATEDIR=/var \
+        -DCMAKE_INSTALL_LIBDIR=lib \
+        -DCMAKE_INSTALL_SBINDIR=bin \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DBUILD_STATIC_LIBS=OFF \
+        -DENABLE_STATIC=OFF \
+        -DBUILD_SHARED_LIBS=ON \
+        -DPKG_CONFIG_EXECUTABLE="/usr/local/bin/$OS_TRIPLET-pkg-config" \
+        -DCMAKE_COLOR_DIAGNOSTICS=ON \
+        -GNinja \
+        "$@"
+}

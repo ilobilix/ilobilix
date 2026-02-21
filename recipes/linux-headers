@@ -1,0 +1,18 @@
+#!/bin/sh
+
+name=linux-headers
+from_source=linux
+revision=1
+imagedeps="rsync"
+
+build() {
+    cp -rp "${source_dir}"/. ./
+    mkdir -p headers
+
+    make ARCH=${LINUX_ARCH} headers_install \
+        INSTALL_HDR_PATH="$(pwd)/headers"
+}
+
+package() {
+    cp -rp headers/include "${dest_dir}${prefix}"
+}

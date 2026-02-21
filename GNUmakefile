@@ -17,23 +17,19 @@ QEMU_SMP ?= 6
 
 override SOURCE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 override KERNEL_SOURCE_DIR := $(SOURCE_DIR)/kernel/
-override BUILDROOT_SOURCE_DIR := $(SOURCE_DIR)/buildroot/
+
+override SUPPORT_DIR := $(SOURCE_DIR)/support/
+override JINX_EXEC := $(SUPPORT_DIR)/jinx/jinx
 
 override BUILD_DIR := $(SOURCE_DIR)/build-$(ILOBILIX_ARCH)
 override KERNEL_BUILD_DIR := $(BUILD_DIR)/kernel/
-override BUILDROOT_BUILD_DIR := $(BUILD_DIR)/buildroot/
+override JINX_BUILD_DIR := $(BUILD_DIR)/jinx/
 override SYSROOT_DIR := $(BUILD_DIR)/sysroot/
 override ISO_DIR := $(BUILD_DIR)/iso/
 
 ifdef OVERRIDE_SYSROOT_DIR
 override SYSROOT_DIR := $(abspath $(OVERRIDE_SYSROOT_DIR))
 endif
-
-override SYSROOT_OVERLAY_DIR := $(SOURCE_DIR)/support/overlay/
-
-override BUILDROOT := make -C $(BUILDROOT_SOURCE_DIR) O=$(BUILDROOT_BUILD_DIR)
-override BUILDROOT_CONFIG :=  $(SOURCE_DIR)/support/buildroot-$(ILOBILIX_ARCH).config
-override BUILDROOT_OUT_TAR := $(BUILDROOT_BUILD_DIR)/images/rootfs.tar
 
 override LIMINE_DIR := $(KERNEL_SOURCE_DIR)/dependencies/limine/limine/
 override LIMINE_EXEC := $(KERNEL_BUILD_DIR)/dependencies/limine/limine
@@ -44,7 +40,7 @@ override MODULES_DIR := $(KERNEL_BUILD_DIR)/modules/modules/
 override INITRAMFS_IMG := $(BUILD_DIR)/initramfs.tar
 override ISO_IMG := $(BUILD_DIR)/image.iso
 
-override OVMF_DIR := $(SOURCE_DIR)/ovmf-binaries/
+override OVMF_DIR := $(SUPPORT_DIR)/ovmf-binaries/
 ifeq ($(ILOBILIX_ARCH),x86_64)
 override OVMF_BIN := $(OVMF_DIR)/OVMF_X64.fd
 endif
@@ -179,39 +175,35 @@ build-kernel:
 clean-kernel:
 	cmake --build $(KERNEL_BUILD_DIR) --target clean
 
-.PHONY: config-sysroot
-config-sysroot:
-	$(BUILDROOT) menuconfig
-	@cp -v $(BUILDROOT_BUILD_DIR)/.config $(BUILDROOT_CONFIG)
-	sed -i 's|^BR2_ROOTFS_OVERLAY=".*"$$|BR2_ROOTFS_OVERLAY=""|' $(BUILDROOT_CONFIG)
-	$(MAKE) setup-sysroot
-
 .PHONY: setup-sysroot
 setup-sysroot:
 ifndef OVERRIDE_SYSROOT_DIR
-	@mkdir -vp $(BUILDROOT_BUILD_DIR)
-	@cp -v $(BUILDROOT_CONFIG) $(BUILDROOT_BUILD_DIR)/.config
-	sed -i 's|^BR2_ROOTFS_OVERLAY=".*"$$|BR2_ROOTFS_OVERLAY="$(SYSROOT_OVERLAY_DIR)"|' $(BUILDROOT_BUILD_DIR)/.config
-	$(BUILDROOT) oldconfig
+	@mkdir -vp $(JINX_BUILD_DIR)
+	-cd $(JINX_BUILD_DIR) && $(JINX_EXEC) init $(SOURCE_DIR) ARCH=$(ILOBILIX_ARCH)
 endif
 
 .PHONY: build-sysroot
 build-sysroot:
 ifndef OVERRIDE_SYSROOT_DIR
-	$(BUILDROOT) all
+	cd $(JINX_BUILD_DIR) && $(JINX_EXEC) build $(ILOBILIX_PACKAGES)
+endif
+
+.PHONY: rebuild-sysroot
+rebuild-sysroot:
+ifndef OVERRIDE_SYSROOT_DIR
+	cd $(JINX_BUILD_DIR) && $(JINX_EXEC) rebuild $(ILOBILIX_PACKAGES)
 endif
 
 .PHONY: install-sysroot
 install-sysroot:
 ifndef OVERRIDE_SYSROOT_DIR
-	@mkdir -vp $(SYSROOT_DIR)
-	tar xf $(BUILDROOT_OUT_TAR) -C $(SYSROOT_DIR)
+	cd $(JINX_BUILD_DIR) && $(JINX_EXEC) install $(SYSROOT_DIR) $(ILOBILIX_PACKAGES)
 endif
 
 .PHONY: clean-sysroot
 clean-sysroot:
 ifndef OVERRIDE_SYSROOT_DIR
-	$(BUILDROOT) clean
+	rm -rvf $(SYSROOT_DIR)
 endif
 
 .PHONY: distclean-kernel
@@ -220,7 +212,7 @@ distclean-kernel:
 
 .PHONY: distclean-sysroot
 distclean-sysroot:
-	$(BUILDROOT) distclean
+	@rm -rvf $(JINX_BUILD_DIR)
 
 .PHONY: clean-initramfs
 clean-initramfs:

@@ -1,0 +1,6 @@
+#!/bin/sh
+
+name=base
+version=0.1
+revision=1
+deps="base-files glibc bash ncurses readline"

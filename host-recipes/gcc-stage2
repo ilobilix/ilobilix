@@ -1,0 +1,51 @@
+#!/bin/sh
+
+name=gcc-stage2
+from_source=gcc
+revision=1
+hostdeps="binutils"
+deps="glibc-base"
+
+prepare() {
+    sed '/thread_header =/s/@.*@/gthr-posix.h/' \
+        -i libgcc/Makefile.in libstdc++-v3/include/Makefile.in
+}
+
+configure() {
+    cp -rp "${source_dir}"/. ./
+
+    mkdir -p build && cd build
+
+        CFLAGS="$HOST_CFLAGS" \
+        CXXFLAGS="$HOST_CXXFLAGS" \
+        LDFLAGS="$HOST_LDFLAGS" \
+        CFLAGS_FOR_TARGET="$TARGET_CFLAGS" \
+        CXXFLAGS_FOR_TARGET="$TARGET_CXXFLAGS" \
+    ../configure \
+        --build=$(../config.guess) \
+        --target=${OS_TRIPLET} \
+        --prefix="${prefix}" \
+        --with-sysroot="${sysroot_dir}" \
+        --enable-default-pie \
+        --enable-default-ssp \
+        --disable-nls \
+        --disable-multilib \
+        --disable-libatomic \
+        --disable-libgomp \
+        --disable-libquadmath \
+        --disable-libssp \
+        --disable-libvtv \
+        --disable-libstdcxx \
+        --enable-languages=c \
+        --disable-bootstrap
+}
+
+build() {
+    cd build
+    make -j${parallelism}
+}
+
+package() {
+    cd build
+    DESTDIR="${dest_dir}" make install
+}
