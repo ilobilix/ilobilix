@@ -7,7 +7,7 @@ Contributors are welcome! Feel free to open issues or submit pull requests.
 
 ## Building And Running
 * Make sure you are running an up-to-date Linux system and have following programs installed:
-  * ``clang`` (19+)
+  * ``clang`` (21+)
   * ``clang-scan-deps`` (``clang-tools-extra``)
   * ``lld``
   * ``llvm``
@@ -68,6 +68,6 @@ ilobilix/
 * [fmtlib](https://github.com/fmtlib/fmt)
 
 ## Known Bugs
-* ``aarch64`` basically doesn't work
+* mp booting not working on ``aarch64``
 * unconfirmed: sometimes sleeping thread doesn't wake up on bare metal
 * unconfirmed: slab allocator memory mapping breaks on that one laptop
