@@ -5,6 +5,8 @@ Contributors are welcome! Feel free to open issues or submit pull requests.
 
 ## License: [EUPL v1.2](LICENSE)
 
+![x86_64](screenshots/x86_64.png "x86_64")
+
 ## Building And Running
 * Make sure you are running an up-to-date Linux system and have following programs installed:
   * ``clang`` (21+)
