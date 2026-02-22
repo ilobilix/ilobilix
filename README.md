@@ -63,11 +63,11 @@ ilobilix/
 ├── support/          # Various files for userspace and the build system
 ```
 
-### Notable projects used:
-* [Limine bootloader](https://codeberg.org/Limine/Limine)
+### Notable Pojects Used:
+* [Limine](https://codeberg.org/Limine/Limine)
 * [Jinx](https://codeberg.org/mintsuki/jinx)
-* [UACPI](https://github.com/uACPI/uACPI)
-* [fmtlib](https://github.com/fmtlib/fmt)
+* [uACPI](https://github.com/uACPI/uACPI)
+* [Fmtlib](https://github.com/fmtlib/fmt)
 
 ## Known Bugs
 * mp booting not working on ``aarch64``
