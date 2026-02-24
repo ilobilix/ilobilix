@@ -37,9 +37,8 @@ Contributors are welcome! Feel free to open issues or submit pull requests.
 ### Build-Only Options
 * ``ILOBILIX_PACKAGES=[<base>|coreutils|...]``
 * ``ILOBILIX_BUILD_TYPE=[Release|<ReleaseDbg>|Debug]``
+* ``ILOBILIX_LTO=[ON|<OFF>]`` (Requires 'Release' build type)
 * ``ILOBILIX_SYSCALL_LOG=[ON|<OFF>]``
-* ``ILOBILIX_EXTRA_PANIC_MSG=[<ON>|OFF]``
-* ``ILOBILIX_MAX_UACPI_POINTS=[ON|<OFF>]``
 * ``ILOBILIX_LIMINE_MP=[<ON>|OFF]``
 * ``ILOBILIX_UBSAN=[ON|<OFF>]``
 
