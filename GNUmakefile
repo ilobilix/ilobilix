@@ -47,7 +47,7 @@ ifeq ($(ILOBILIX_ARCH),aarch64)
 override OVMF_BIN := $(OVMF_DIR)/OVMF_AA64.fd
 endif
 
-override CXXFILT_EXE := llvm-cxxfilt --no-params
+# override CXXFILT_EXE := llvm-cxxfilt --no-params
 
 override QEMU_SERIAL_FIX := < /dev/tty > /dev/tty
 
@@ -234,8 +234,8 @@ run-iso: run-iso-uefi
 
 .PHONY: run-iso-uefi
 run-iso-uefi:
-	$(QEMU_EXEC) $(QEMU_ARGS) -bios $(OVMF_BIN) -cdrom $(ISO_IMG) $(QEMU_SERIAL_FIX) | $(CXXFILT_EXE)
+	$(QEMU_EXEC) $(QEMU_ARGS) -bios $(OVMF_BIN) -cdrom $(ISO_IMG) $(QEMU_SERIAL_FIX)
 
 .PHONY: run-iso-bios
 run-iso-bios:
-	$(QEMU_EXEC) $(QEMU_ARGS) -cdrom $(ISO_IMG) $(QEMU_SERIAL_FIX) | $(CXXFILT_EXE)
+	$(QEMU_EXEC) $(QEMU_ARGS) -cdrom $(ISO_IMG) $(QEMU_SERIAL_FIX)
