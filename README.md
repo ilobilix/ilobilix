@@ -72,3 +72,92 @@ ilobilix/
 * mp booting not working on ``aarch64``
 * unconfirmed: sometimes sleeping thread doesn't wake up on bare metal
 * unconfirmed: slab allocator memory mapping breaks on that one laptop
+
+## Initgraph
+```mermaid
+---
+config:
+  layout: elk
+---
+flowchart TD
+  subgraph presched-engine
+    output.init
+    timers.acpipm
+    timers.acpipm.create-thread
+    timers
+    acpi.early-tables
+    sched.pid0.create
+    arch.bsp.initialise
+    arch.cpus.initialise
+    timers.arch.hpet
+    timers.arch.hpet.create-thread
+    timers.arch.kvm
+    timers.arch.pit
+    timers.arch
+    timers.arch.tsc
+  end
+  subgraph postsched-engine
+    uacpi.create-workers
+    vfs.dev.memfiles.register
+    vfs.dev.tty.current.register
+    vfs.devtmpfs.register
+    vfs.devtmpfs.mount
+    vfs.fs.register
+    vfs.tmpfs.register
+    vfs.initramfs.extract
+    acpi.initialise
+    bin.exec.elf.register
+    bin.elf.load-modules
+    bin.exec.script.register
+    pci.acpi.discover-ios
+    pci.acpi.discover-rbs
+    pci.enumerate
+    vfs.mount-root
+    output.arch.uart8250.tty.register
+    pci.arch.discover-ios
+    pci.arch.discover-rbs
+  end
+  output.init --> acpi.early-tables
+  timers.acpipm --> timers.acpipm.create-thread
+  timers.acpipm --> timers
+  timers --> sched.pid0.create
+  timers --> arch.cpus.initialise
+  acpi.early-tables --> timers.acpipm
+  acpi.early-tables --> pci.acpi.discover-ios
+  acpi.early-tables --> arch.bsp.initialise
+  acpi.early-tables --> timers.arch.hpet
+  sched.pid0.create --> uacpi.create-workers
+  sched.pid0.create --> timers.acpipm.create-thread
+  sched.pid0.create --> timers.arch.hpet.create-thread
+  arch.bsp.initialise --> arch.cpus.initialise
+  arch.bsp.initialise --> timers.arch.kvm
+  arch.bsp.initialise --> timers.arch.pit
+  arch.bsp.initialise --> timers.arch.tsc
+  arch.cpus.initialise --> sched.pid0.create
+  timers.arch.hpet --> timers.arch.hpet.create-thread
+  timers.arch.hpet --> timers.arch
+  timers.arch.kvm --> timers.arch
+  timers.arch.kvm --> timers.arch.tsc
+  timers.arch.pit --> timers.arch
+  timers.arch --> timers
+  timers.arch.tsc --> timers.arch
+  uacpi.create-workers --> acpi.initialise
+  vfs.devtmpfs.register --> vfs.devtmpfs.mount
+  vfs.devtmpfs.register --> vfs.fs.register
+  vfs.devtmpfs.mount --> vfs.dev.memfiles.register
+  vfs.devtmpfs.mount --> vfs.dev.tty.current.register
+  vfs.devtmpfs.mount --> output.arch.uart8250.tty.register
+  vfs.fs.register --> vfs.mount-root
+  vfs.tmpfs.register --> vfs.fs.register
+  vfs.initramfs.extract --> bin.elf.load-modules
+  acpi.initialise --> pci.acpi.discover-rbs
+  pci.acpi.discover-ios --> acpi.initialise
+  pci.acpi.discover-ios --> pci.enumerate
+  pci.acpi.discover-ios --> pci.arch.discover-ios
+  pci.acpi.discover-rbs --> pci.enumerate
+  pci.acpi.discover-rbs --> pci.arch.discover-rbs
+  vfs.mount-root --> vfs.devtmpfs.mount
+  vfs.mount-root --> vfs.initramfs.extract
+  pci.arch.discover-ios --> pci.enumerate
+  pci.arch.discover-rbs --> pci.enumerate
+```
