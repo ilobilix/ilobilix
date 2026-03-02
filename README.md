@@ -3,6 +3,9 @@ Monolithic Hobby OS in modern C++ 23 utilising modules where possible. It has su
 
 Contributors are welcome! Feel free to open issues or submit pull requests.
 
+> [!NOTE]
+> This repo contains files needed to build and run the OS. Kernel source code is located in [ilobilix/kernel](https://github.com/ilobilix/kernel)
+
 ## License: [EUPL v1.2](LICENSE)
 
 ![x86_64](screenshots/x86_64.png "x86_64")
