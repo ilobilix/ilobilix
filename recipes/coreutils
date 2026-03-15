@@ -1,0 +1,26 @@
+#!/bin/sh
+
+name=coreutils
+version=9.10
+revision=1
+tarball_url="https://ftp.gnu.org/gnu/coreutils/coreutils-${version}.tar.xz"
+tarball_blake2b="7f9f93afc996dea7b6ab412703b1706f40616ae4fee1eea9e5cad0f1e8e95b03df9570084a2703fa4b5bb1cb2eaf8bbe55368c0c7ff58af985b30d09227f9309"
+hostdeps="gcc pkg-config"
+deps="core-libs"
+
+configure() {
+        FORCE_UNSAFE_CONFIGURE=1 \
+        PERL=missing \
+    autotools_configure \
+        CFLAGS="$TARGET_CFLAGS -DSLOW_BUT_NO_HACKS"
+}
+
+build() {
+    make -j${parallelism}
+}
+
+package() {
+    DESTDIR="${dest_dir}" make install
+
+    post_package_strip
+}

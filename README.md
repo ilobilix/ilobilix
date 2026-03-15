@@ -38,7 +38,7 @@ Contributors are welcome! Feel free to open issues or submit pull requests.
 * ``ILOBILIX_ARCH=[<x86_64>|aarch64]``
 
 ### Build-Only Options
-* ``ILOBILIX_PACKAGES=[<base>|coreutils|...]``
+* ``ILOBILIX_PACKAGES=[<base>|all|...]``
 * ``ILOBILIX_BUILD_TYPE=[Release|<ReleaseDbg>|Debug]``
 * ``ILOBILIX_LTO=[ON|<OFF>]`` (Requires 'Release' build type)
 * ``ILOBILIX_SYSCALL_LOG=[ON|<OFF>]``

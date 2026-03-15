@@ -2,7 +2,7 @@
 
 JINX_MAJOR_VER=0.8
 JINX_DEBIAN_SNAPSHOT=20260219T142510Z
-JINX_BASE_PACKAGES="build-essential git autopoint flex bison make cmake meson ninja-build file gettext m4 mercurial perl python3 texinfo which xmlto xsltproc doxygen"
+JINX_BASE_PACKAGES="build-essential git autopoint flex bison make cmake meson ninja-build file gettext m4 mercurial perl python3 texinfo help2man which xmlto xsltproc doxygen"
 
 HOST_CFLAGS="-O2 -pipe"
 HOST_CXXFLAGS="${HOST_CFLAGS} -Wp,-D_GLIBCXX_ASSERTIONS"
