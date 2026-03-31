@@ -49,8 +49,6 @@ endif
 
 # override CXXFILT_EXE := llvm-cxxfilt --no-params
 
-override QEMU_SERIAL_FIX := < /dev/tty > /dev/tty
-
 override QEMU_EXEC := qemu-system-$(ILOBILIX_ARCH)
 override QEMU_ARGS += \
 	-m 512M \
@@ -234,8 +232,8 @@ run-iso: run-iso-uefi
 
 .PHONY: run-iso-uefi
 run-iso-uefi:
-	$(QEMU_EXEC) $(QEMU_ARGS) -bios $(OVMF_BIN) -cdrom $(ISO_IMG) $(QEMU_SERIAL_FIX)
+	$(QEMU_EXEC) $(QEMU_ARGS) -bios $(OVMF_BIN) -cdrom $(ISO_IMG)
 
 .PHONY: run-iso-bios
 run-iso-bios:
-	$(QEMU_EXEC) $(QEMU_ARGS) -cdrom $(ISO_IMG) $(QEMU_SERIAL_FIX)
+	$(QEMU_EXEC) $(QEMU_ARGS) -cdrom $(ISO_IMG)
