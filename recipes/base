@@ -3,4 +3,4 @@
 name=base
 version=0.1
 revision=1
-deps="base-files core-libs ncurses readline bash coreutils nano grep"
+deps="base-files core-libs ncurses readline bash bash-completion coreutils nano grep"

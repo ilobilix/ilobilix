@@ -7,7 +7,7 @@ ILOBILIX_LTO ?= OFF
 ILOBILIX_LIMINE_MP ?= ON
 ILOBILIX_UBSAN ?= OFF
 
-ILOBILIX_PACKAGES ?= base
+ILOBILIX_PACKAGES ?= all
 
 QEMU_ACCEL ?= ON
 QEMU_LOG ?= OFF
@@ -51,7 +51,7 @@ endif
 
 override QEMU_EXEC := qemu-system-$(ILOBILIX_ARCH)
 override QEMU_ARGS += \
-	-m 512M \
+	-m 2G \
 	-smp $(QEMU_SMP) \
 	-no-reboot \
 	-no-shutdown \

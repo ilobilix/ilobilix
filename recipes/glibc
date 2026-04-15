@@ -22,6 +22,7 @@ configure() {
         --disable-multilib \
         --disable-werror \
         --disable-nscd \
+        --disable-timezone-tools \
         --enable-shared \
         --enable-kernel=5.4 \
         libc_cv_slibdir="${prefix}/lib" \

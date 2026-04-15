@@ -1,0 +1,33 @@
+#!/bin/sh
+
+name=pam
+version=1.7.2
+revision=1
+git_url="https://github.com/linux-pam/linux-pam.git"
+commit="fe03a10115c082a8486ccbab7462139d7e4bb067"
+hostdeps="gcc pkg-config"
+deps="core-libs gdbm"
+
+configure() {
+    meson_configure \
+        -Ddocs=disabled
+}
+
+build() {
+    meson compile -j${parallelism}
+}
+
+package() {
+    DESTDIR="${dest_dir}" meson install --no-rebuild
+
+    mkdir -p "${dest_dir}"/etc/pam.d
+    cp -v "${base_dir}"/support/pam/* "${dest_dir}"/etc/pam.d/
+
+    mkdir -p "${dest_dir}"/etc/security/namespace.d
+    touch "${dest_dir}"/etc/security/namespace.d/.keep
+
+    mkdir -p "${dest_dir}"/etc/security/limits.d
+    touch "${dest_dir}"/etc/security/limits.d/.keep
+
+    post_package_strip
+}
