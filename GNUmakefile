@@ -116,7 +116,7 @@ initramfs: $(SYSROOT_DIR) kernel # $(KERNEL_ELF)
 	@mkdir -vp $(SYSROOT_DIR)/usr/lib/modules
 	@-cp -rv $(MODULES_DIR)/noarch $(SYSROOT_DIR)/usr/lib/modules/
 	@-cp -rv $(MODULES_DIR)/$(ILOBILIX_ARCH) $(SYSROOT_DIR)/usr/lib/modules/
-	tar --format ustar -cf $(INITRAMFS_IMG) -C $(SYSROOT_DIR) ./
+	tar --format ustar --owner=0 --group=0 --numeric-owner -cf $(INITRAMFS_IMG) -C $(SYSROOT_DIR) ./
 
 $(INITRAMFS_IMG):
 	$(MAKE) initramfs
