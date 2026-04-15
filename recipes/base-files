@@ -7,7 +7,6 @@ source_dir="base-files"
 
 package() {
     cp -r ${source_dir}/. "${dest_dir}"/
-    # find "${dest_dir}/" -type f -name ".keep" -delete
 
     for dir in "${dest_dir}/*/"; do
         dir=${dir%/}
