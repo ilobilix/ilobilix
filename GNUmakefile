@@ -17,6 +17,11 @@ QEMU_SMP ?= 6
 override SOURCE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 override KERNEL_SOURCE_DIR := $(SOURCE_DIR)/kernel/
 
+ifeq ($(ILOBILIX_PACKAGES),all)
+override ILOBILIX_PACKAGES := $(notdir $(wildcard $(SOURCE_DIR)/recipes/*))
+endif
+override ILOBILIX_PACKAGES := $(filter-out glibc-base,$(ILOBILIX_PACKAGES))
+
 override SUPPORT_DIR := $(SOURCE_DIR)/support/
 override JINX_EXEC := $(SUPPORT_DIR)/jinx/jinx
 
@@ -56,8 +61,12 @@ override QEMU_ARGS += \
 	-no-reboot \
 	-no-shutdown \
     -rtc base=localtime \
-	-serial stdio \
-    -boot order=d,menu=on,splash-time=0
+    -boot order=d,menu=on,splash-time=0 \
+	-chardev stdio,id=char0,signal=off,mux=on \
+	-serial chardev:char0 \
+	-mon chardev=char0,mode=readline
+# 	-debugcon file:syscall_log.txt
+# 	-serial stdio
 
 ifeq ($(ILOBILIX_ARCH),x86_64)
 override QEMU_ARGS += \

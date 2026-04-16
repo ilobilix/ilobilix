@@ -5,4 +5,6 @@
 echo Welcome to Ilobilix!
 
 chown -R ilobilix:ilobilix /home/ilobilix
+chmod u+s /bin/sudo
+
 exec su - ilobilix -s /bin/bash

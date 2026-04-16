@@ -1,6 +1,0 @@
-#!/bin/sh
-
-name=all
-version=0.1
-revision=1
-deps="base util-linux shadow python"

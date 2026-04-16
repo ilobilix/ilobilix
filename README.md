@@ -29,6 +29,7 @@ Contributors are welcome! Feel free to open issues or submit pull requests.
   * ``make all``
 * Run the OS in QEMU:
   * ``make run-iso``
+  * You can exit QEMU in the terminal with: ``ctrl+a x``
 
 ## Configurable Environment Variables
 > [!NOTE]
