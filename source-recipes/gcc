@@ -1,13 +1,17 @@
 #!/bin/sh
 
 name=gcc
-version=16-20260215
-tarball_url="https://gcc.gnu.org/pub/gcc/snapshots/${version}/gcc-${version}.tar.xz"
+version=16.20260215
+_upstream_ver=16-20260215
+tarball_url="https://gcc.gnu.org/pub/gcc/snapshots/${_upstream_ver}/gcc-${_upstream_ver}.tar.xz"
 tarball_blake2b="924334293d0628a7457cda91aa46f5a3fa9c0d49915c497391efd1758a079ee9e1e210efe1514d526181a74d99c78f5bb9f074350136c03aa921fe41f17d6d59"
 allow_network="yes"
 
 prepare() {
     ./contrib/download_prerequisites
+
+    sed -i 's/-latomic_asneeded/--as-needed -latomic --no-as-needed/g' \
+        gcc/config/gnu-user.h gcc/gcc.cc || true
 
     case $JINX_ARCH in
         x86_64)

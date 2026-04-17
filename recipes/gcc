@@ -1,0 +1,66 @@
+#!/bin/sh
+
+name=gcc
+from_source=gcc
+revision=1
+hostdeps="gcc pkg-config"
+deps="core-libs binutils zlib gmp mpfr mpc gettext"
+
+configure() {
+    autotools_configure \
+        CFLAGS_FOR_BUILD="$HOST_CFLAGS" \
+        CXXFLAGS_FOR_BUILD="$HOST_CXXFLAGS" \
+        LDFLAGS_FOR_BUILD="$HOST_LDFLAGS" \
+        CFLAGS_FOR_TARGET="$TARGET_CFLAGS" \
+        CXXFLAGS_FOR_TARGET="$TARGET_CXXFLAGS" \
+        LDFLAGS_FOR_TARGET="$TARGET_LDFLAGS" \
+        --target=${OS_TRIPLET} \
+        --with-sysroot=/ \
+        --with-build-sysroot=${sysroot_dir} \
+        --with-glibc-version=2.43 \
+        --enable-__cxa_atexit \
+        --enable-cet=auto \
+        --enable-checking=release \
+        --enable-clocale=gnu \
+        --with-linker-hash-style=gnu \
+        --enable-linker-build-id \
+        --enable-default-pie \
+        --enable-default-ssp \
+        --enable-gnu-indirect-function \
+        --enable-gnu-unique-object \
+        --enable-libstdcxx-backtrace \
+        --enable-link-serialization=1 \
+        --enable-linker-build-id \
+        --enable-languages=c,c++,lto \
+        --enable-lto \
+        --disable-multilib \
+        --enable-plugin \
+        --enable-shared \
+        --enable-host-shared \
+        --enable-threads=posix \
+        --disable-libssp \
+        --disable-libstdcxx-pch \
+        --disable-werror \
+        --with-system-zlib
+}
+
+build() {
+    make -j${parallelism} all-gcc
+}
+
+package() {
+    DESTDIR="${dest_dir}" make install-gcc
+
+    specs_dir="${dest_dir}${prefix}/lib/gcc/${OS_TRIPLET}/$(${OS_TRIPLET}-gcc -dumpversion)"
+    specs="$(${OS_TRIPLET}-gcc -dumpspecs)"
+    specs="${specs//-latomic_asneeded/--as-needed -latomic --no-as-needed}"
+    specs="${specs//-lgcc_s_asneeded/--as-needed -lgcc_s --no-as-needed}"
+    echo "${specs}" > "${specs_dir}/specs"
+
+    ln -s gcc "${dest_dir}${prefix}"/bin/cc
+
+    # Remove static libraries
+    rm -rf "${dest_dir}${prefix}"/lib/*.a
+
+    post_package_strip
+}

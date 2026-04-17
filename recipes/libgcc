@@ -1,0 +1,37 @@
+#!/bin/sh
+
+name=libgcc
+skip_pkg_check=yes
+version="$(. "${base_dir}/source-recipes/gcc" && echo ${version})"
+revision=1
+hostdeps="gcc pkg-config"
+imagedeps="build-essential"
+deps="glibc"
+
+build() {
+    cd "${build_dir}"/host-builds/gcc/build
+
+    make -j${parallelism} all-target-libgcc
+}
+
+package() {
+    cd "${build_dir}"/host-builds/gcc/build
+
+    rm -rf tmp_libgcc_dir
+    mkdir tmp_libgcc_dir
+
+    DESTDIR="$(realpath tmp_libgcc_dir)" make install-target-libgcc
+
+    find tmp_libgcc_dir -name '*.la' -delete
+
+    mkdir -p "${dest_dir}${prefix}"
+
+    cp -r tmp_libgcc_dir/usr/local/lib "${dest_dir}${prefix}"/
+    if [ -d "tmp_libgcc_dir/usr/local/${OS_TRIPLET}" ]; then
+        cp -r tmp_libgcc_dir/usr/local/${OS_TRIPLET}/* "${dest_dir}${prefix}"/
+    fi
+
+    # Copy libgcc into GCC's tree else it will complain.
+    mkdir -p "${build_dir}"/host-pkgs/gcc/usr/local/lib
+    cp -r tmp_libgcc_dir/usr/local/lib/* "${build_dir}"/host-pkgs/gcc/usr/local/lib/
+}

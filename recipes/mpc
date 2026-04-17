@@ -1,0 +1,25 @@
+#!/bin/sh
+
+name=mpc
+repology_id=gnumpc
+version=1.4.0
+revision=1
+tarball_url="https://ftp.gnu.org/gnu/mpc/mpc-${version}.tar.xz"
+tarball_blake2b="d00dbc52a92efd619498671475743c9f35797343c731542f881c04c4a0b198f5b36df51bfde3ce520866d1851958409a6dd0de02d85d7b2e0ba00ccb27a30464"
+hostdeps="gcc pkg-config"
+deps="core-libs gmp mpfr"
+
+
+configure() {
+    autotools_configure
+}
+
+build() {
+    make -j${parallelism}
+}
+
+package() {
+    DESTDIR="${dest_dir}" make install
+
+    post_package_strip
+}

@@ -1,0 +1,41 @@
+#!/bin/sh
+
+name=libatomic
+skip_pkg_check=yes
+version="$(. "${base_dir}/source-recipes/gcc" && echo ${version})"
+revision=1
+hostdeps="gcc pkg-config"
+imagedeps="build-essential"
+deps="glibc libgcc libstdc++"
+
+build() {
+    cd "${build_dir}"/host-builds/gcc/build
+
+    make -j${parallelism} all-target-libatomic
+}
+
+package() {
+    cd "${build_dir}"/host-builds/gcc/build
+
+    rm -rf tmp_libatomic_dir
+    mkdir tmp_libatomic_dir
+
+    DESTDIR="$(realpath tmp_libatomic_dir)" make install-target-libatomic
+
+    find tmp_libatomic_dir -name '*.la' -delete
+
+    mkdir -p "${dest_dir}${prefix}"
+
+    if [ -d "tmp_libatomic_dir/usr/local/lib" ]; then
+        cp -r tmp_libatomic_dir/usr/local/lib "${dest_dir}${prefix}"/
+
+        mkdir -p "${build_dir}"/host-pkgs/gcc/usr/local/lib
+        cp -r tmp_libatomic_dir/usr/local/lib/* "${build_dir}"/host-pkgs/gcc/usr/local/lib/
+    fi
+    if [ -d "tmp_libatomic_dir/usr/local/${OS_TRIPLET}" ]; then
+        cp -r tmp_libatomic_dir/usr/local/${OS_TRIPLET}/* "${dest_dir}${prefix}"/
+
+        mkdir -p "${build_dir}"/host-pkgs/gcc/usr/local/${OS_TRIPLET}
+        cp -r tmp_libatomic_dir/usr/local/${OS_TRIPLET}/* "${build_dir}"/host-pkgs/gcc/usr/local/${OS_TRIPLET}/
+    fi
+}

@@ -1,0 +1,43 @@
+#!/bin/sh
+
+name=binutils
+from_source=binutils
+revision=1
+imagedeps="build-essential"
+hostdeps="gcc pkg-config"
+deps="core-libs zlib zstd"
+
+configure() {
+    autotools_configure \
+        --target=${OS_TRIPLET} \
+        --with-build-sysroot=${sysroot_dir} \
+        --enable-separate-code \
+        --enable-cet \
+        --enable-colored-disassembly \
+        --enable-default-execstack=no \
+        --enable-deterministic-archives \
+        --enable-ld=default \
+        --enable-new-dtags \
+        --enable-plugins \
+        --enable-relro \
+        --enable-threads \
+        --disable-werror \
+        --with-pic \
+        --with-system-zlib
+}
+
+build() {
+    make -j${parallelism}
+}
+
+package() {
+    DESTDIR="${dest_dir}" make install
+
+    # Remove unnecessary directory
+    rm -rf "${dest_dir}${prefix}"/${OS_TRIPLET}
+
+    # Remove static libraries
+    rm -rf "${dest_dir}${prefix}"/lib/*.a
+
+    post_package_strip
+}
