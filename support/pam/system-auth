@@ -1,6 +1,6 @@
 # Begin /etc/pam.d/system-auth
 
-auth      required    pam_unix.so
+auth      required    pam_unix.so    nullok
 account   include     system-account
 password  include     system-password
 session   include     system-session
