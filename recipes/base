@@ -3,5 +3,5 @@
 name=base
 version=0.1
 revision=1
-deps="base-files core-libs ncurses readline bash bash-completion coreutils nano grep file \
+deps="base-files core-libs ncurses readline bash bash-completion coreutils tar nano grep file \
     bzip2 gzip lz4 xz zlib zstd util-linux shadow"
