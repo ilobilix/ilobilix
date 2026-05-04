@@ -56,3 +56,12 @@ if [ -f "$dst/etc/shadow" ]; then
         "$dst/etc/shadow" "$dst/etc/passwd"
     chmod "$saved_mode" "$dst/etc/shadow"
 fi
+
+# :trl:
+[ -f "$dst/etc/runit/1" ] && sed -i 's|Welcome to Void!|Welcome to Ilobilix!|' "$dst/etc/runit/1"
+[ -f "$dst/usr/bin/lsb_release" ] && sed -i \
+    -e 's|^distributor_id="VoidLinux"|distributor_id="Ilobilix"|' \
+    -e 's|^description="Void Linux"|description="Ilobilix"|' \
+    -e 's|^codename="void"|codename="ilobilix"|' \
+    "$dst/usr/bin/lsb_release"
+:
