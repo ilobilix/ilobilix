@@ -69,6 +69,11 @@ override MODULES_DIR := $(KERNEL_BUILD_DIR)/modules/modules
 override INITRAMFS_IMG := $(BUILD_DIR)/initramfs.tar
 override ISO_IMG := $(BUILD_DIR)/image.iso
 
+override KERNEL_VERSION := $(shell sed -n '/project(/,/)/{s/.*\bVERSION[[:space:]]\+\([0-9][0-9.]*\).*/\1/p;}' $(KERNEL_SOURCE_DIR)/CMakeLists.txt | head -1)
+override KERNEL_GIT_COMMIT := $(shell git -C $(KERNEL_SOURCE_DIR) rev-parse --short HEAD 2>/dev/null)
+override ILOBILIX_RELEASE := $(KERNEL_VERSION)$(if $(KERNEL_GIT_COMMIT),-$(KERNEL_GIT_COMMIT),)
+override MODULES_INSTALL_DIR := $(SYSROOT_DIR)/usr/lib/modules/$(ILOBILIX_RELEASE)
+
 override OVMF_DIR := $(SUPPORT_DIR)/ovmf-binaries
 ifeq ($(ILOBILIX_ARCH),x86_64)
 override OVMF_BIN := $(OVMF_DIR)/OVMF_X64.fd
@@ -216,9 +221,9 @@ sysroot: install-sysroot
 
 $(INITRAMFS_IMG): $(KERNEL_ELF) install-sysroot
 	@rm -rf $(SYSROOT_DIR)/usr/lib/modules
-	@mkdir -p $(SYSROOT_DIR)/usr/lib/modules
-	@-cp -r $(MODULES_DIR)/noarch $(SYSROOT_DIR)/usr/lib/modules/
-	@-cp -r $(MODULES_DIR)/$(ILOBILIX_ARCH) $(SYSROOT_DIR)/usr/lib/modules/
+	@mkdir -p $(MODULES_INSTALL_DIR)
+	@-cp -r $(MODULES_DIR)/noarch/. $(MODULES_INSTALL_DIR)/
+	@-cp -r $(MODULES_DIR)/$(ILOBILIX_ARCH)/. $(MODULES_INSTALL_DIR)/
 	tar --format ustar --owner=0 --group=0 --numeric-owner --exclude='./.extracted' -cf $@ -C $(SYSROOT_DIR) ./
 
 .PHONY: initramfs clean-initramfs distclean-initramfs
