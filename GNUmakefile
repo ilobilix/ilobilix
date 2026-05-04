@@ -7,44 +7,69 @@ ILOBILIX_LTO ?= OFF
 ILOBILIX_LIMINE_MP ?= ON
 ILOBILIX_UBSAN ?= OFF
 
-ILOBILIX_PACKAGES ?= all
+ILOBILIX_VOID_ROOTFS_DATE ?= 20250202
+ILOBILIX_VOID_INSTALL ?=
+ILOBILIX_VOID_REMOVE ?=
 
 QEMU_ACCEL ?= ON
 QEMU_LOG ?= OFF
 QEMU_GDB ?= OFF
 QEMU_SMP ?= 6
 
-override SOURCE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-override KERNEL_SOURCE_DIR := $(SOURCE_DIR)/kernel/
-
-ifeq ($(ILOBILIX_PACKAGES),all)
-override ILOBILIX_PACKAGES := $(notdir $(wildcard $(SOURCE_DIR)/recipes/*))
-endif
-override ILOBILIX_PACKAGES := $(filter-out glibc-base,$(ILOBILIX_PACKAGES))
-
-override SUPPORT_DIR := $(SOURCE_DIR)/support/
-override JINX_EXEC := $(SUPPORT_DIR)/jinx/jinx
+override SOURCE_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+override KERNEL_SOURCE_DIR := $(SOURCE_DIR)/kernel
+override SUPPORT_DIR := $(SOURCE_DIR)/support
 
 override BUILD_DIR := $(SOURCE_DIR)/build-$(ILOBILIX_ARCH)
-override KERNEL_BUILD_DIR := $(BUILD_DIR)/kernel/
-override JINX_BUILD_DIR := $(BUILD_DIR)/jinx/
-override SYSROOT_DIR := $(BUILD_DIR)/sysroot/
-override ISO_DIR := $(BUILD_DIR)/iso/
+override KERNEL_BUILD_DIR := $(BUILD_DIR)/kernel
+override SYSROOT_DIR := $(BUILD_DIR)/sysroot
+override SYSROOT_CACHE_DIR := $(BUILD_DIR)/sysroot-cache
+override ISO_DIR := $(BUILD_DIR)/iso
 
-ifdef OVERRIDE_SYSROOT_DIR
-override SYSROOT_DIR := $(abspath $(OVERRIDE_SYSROOT_DIR))
+ifdef ILOBILIX_SYSROOT_DIR
+override SYSROOT_DIR := $(abspath $(ILOBILIX_SYSROOT_DIR))
 endif
 
-override LIMINE_DIR := $(KERNEL_SOURCE_DIR)/dependencies/limine/limine/
+override VOID_ROOTFS_TARBALL := void-$(ILOBILIX_ARCH)-ROOTFS-$(ILOBILIX_VOID_ROOTFS_DATE).tar.xz
+override VOID_ROOTFS_URL := https://repo-default.voidlinux.org/live/$(ILOBILIX_VOID_ROOTFS_DATE)/$(VOID_ROOTFS_TARBALL)
+override VOID_ROOTFS_CACHE := $(SYSROOT_CACHE_DIR)/$(VOID_ROOTFS_TARBALL)
+
+ifeq ($(ILOBILIX_ARCH),x86_64)
+override VOID_REPO_URL := https://repo-default.voidlinux.org/current
+endif
+ifeq ($(ILOBILIX_ARCH),aarch64)
+override VOID_REPO_URL := https://repo-default.voidlinux.org/current/aarch64
+endif
+
+override XBPS_HOST_ARCH := $(shell uname -m)
+override XBPS_DIR := $(BUILD_DIR)/xbps
+override XBPS_BIN := $(XBPS_DIR)/usr/bin
+override XBPS_TARBALL := $(SYSROOT_CACHE_DIR)/xbps-static-$(XBPS_HOST_ARCH).tar.xz
+override XBPS_URL := https://repo-default.voidlinux.org/static/xbps-static-latest.$(XBPS_HOST_ARCH)-musl.tar.xz
+
+override CA_BUNDLE := $(firstword $(wildcard \
+	/etc/ssl/certs/ca-certificates.crt \
+	/etc/ssl/certs/ca-bundle.crt \
+	/etc/pki/tls/certs/ca-bundle.crt \
+	/etc/ssl/cert.pem))
+override XBPS_ENV := XBPS_TARGET_ARCH=$(ILOBILIX_ARCH)
+ifneq ($(CA_BUNDLE),)
+override XBPS_ENV += SSL_CA_CERT_FILE=$(CA_BUNDLE)
+endif
+
+override XBPS_INSTALL := $(XBPS_ENV) $(XBPS_BIN)/xbps-install -R $(VOID_REPO_URL) -r $(SYSROOT_DIR)
+override XBPS_REMOVE := $(XBPS_ENV) $(XBPS_BIN)/xbps-remove -r $(SYSROOT_DIR)
+
+override LIMINE_DIR := $(KERNEL_SOURCE_DIR)/dependencies/limine/limine
 override LIMINE_EXEC := $(KERNEL_BUILD_DIR)/dependencies/limine/limine
-override LIMINE_CONF := $(SOURCE_DIR)/support/limine.conf
+override LIMINE_CONF := $(SUPPORT_DIR)/limine.conf
 
 override KERNEL_ELF := $(KERNEL_BUILD_DIR)/kernel/source/kernel_elf
-override MODULES_DIR := $(KERNEL_BUILD_DIR)/modules/modules/
+override MODULES_DIR := $(KERNEL_BUILD_DIR)/modules/modules
 override INITRAMFS_IMG := $(BUILD_DIR)/initramfs.tar
 override ISO_IMG := $(BUILD_DIR)/image.iso
 
-override OVMF_DIR := $(SUPPORT_DIR)/ovmf-binaries/
+override OVMF_DIR := $(SUPPORT_DIR)/ovmf-binaries
 ifeq ($(ILOBILIX_ARCH),x86_64)
 override OVMF_BIN := $(OVMF_DIR)/OVMF_X64.fd
 endif
@@ -52,20 +77,18 @@ ifeq ($(ILOBILIX_ARCH),aarch64)
 override OVMF_BIN := $(OVMF_DIR)/OVMF_AA64.fd
 endif
 
-# override CXXFILT_EXE := llvm-cxxfilt --no-params
-
 override QEMU_EXEC := qemu-system-$(ILOBILIX_ARCH)
 override QEMU_ARGS += \
-	-m 2G \
+	-m 8G \
 	-smp $(QEMU_SMP) \
 	-no-reboot \
 	-no-shutdown \
-    -rtc base=localtime \
-    -boot order=d,menu=on,splash-time=0 \
+	-rtc base=localtime \
+	-boot order=d,menu=on,splash-time=0 \
 	-chardev stdio,id=char0,signal=off,mux=on \
 	-serial chardev:char0 \
 	-mon chardev=char0,mode=readline
-# 	-debugcon file:syscall_log.txt
+# 	-debugcon file:$(BUILD_DIR)/syscall_log.txt
 # 	-serial stdio
 
 ifeq ($(ILOBILIX_ARCH),x86_64)
@@ -88,83 +111,16 @@ endif
 endif
 endif
 ifeq ($(QEMU_LOG),ON)
-override QEMU_ARGS += -d int -D log.txt
+override QEMU_ARGS += -d int -D $(BUILD_DIR)/log.txt
 endif
 ifeq ($(QEMU_GDB),ON)
 override QEMU_ARGS += -s -S
 endif
 
-.PHONY: error
-error:
-	@echo "Please RTFM"
-	@exit 1
-
 .PHONY: all
 all: $(ISO_IMG)
 
-.PHONY: kernel
-kernel:
-	$(MAKE) setup-kernel
-	$(MAKE) build-kernel
-
-$(KERNEL_ELF): kernel
-
-.PHONY: sysroot
-sysroot:
-	$(MAKE) setup-sysroot
-	$(MAKE) build-sysroot
-	$(MAKE) install-sysroot
-
-$(SYSROOT_DIR):
-	$(MAKE) sysroot
-
-.PHONY: initramfs
-.NOTPARALLEL:
-initramfs: $(SYSROOT_DIR) kernel # $(KERNEL_ELF)
-	@rm -rvf $(SYSROOT_DIR)/usr/lib/modules
-	@mkdir -vp $(SYSROOT_DIR)/usr/lib/modules
-	@-cp -rv $(MODULES_DIR)/noarch $(SYSROOT_DIR)/usr/lib/modules/
-	@-cp -rv $(MODULES_DIR)/$(ILOBILIX_ARCH) $(SYSROOT_DIR)/usr/lib/modules/
-	tar --format ustar --owner=0 --group=0 --numeric-owner -cf $(INITRAMFS_IMG) -C $(SYSROOT_DIR) ./
-
-$(INITRAMFS_IMG):
-	$(MAKE) initramfs
-
-.PHONY: iso
-iso: initramfs # $(INITRAMFS_IMG)
-	@rm -rvf $(ISO_DIR)
-	@mkdir -vp $(ISO_DIR)/boot/limine
-	@mkdir -vp $(ISO_DIR)/EFI/BOOT
-
-	@cp -v $(KERNEL_ELF) $(ISO_DIR)/boot/kernel.elf
-	@cp -v $(INITRAMFS_IMG) $(ISO_DIR)/boot/initramfs.img
-	@cp -v $(LIMINE_CONF) $(ISO_DIR)/boot
-
-ifeq ($(ILOBILIX_ARCH),x86_64)
-	@cp -v $(LIMINE_DIR)/limine-bios.sys $(LIMINE_DIR)/limine-bios-cd.bin $(LIMINE_DIR)/limine-uefi-cd.bin $(ISO_DIR)/boot/limine/
-	@cp -v $(LIMINE_DIR)/BOOTX64.EFI $(ISO_DIR)/EFI/BOOT/
-	@cp -v $(LIMINE_DIR)/BOOTIA32.EFI $(ISO_DIR)/EFI/BOOT/
-	@xorriso -as mkisofs -R -r -J -b boot/limine/limine-bios-cd.bin \
-		-no-emul-boot -boot-load-size 4 -boot-info-table -hfsplus \
-		-apm-block-size 2048 --efi-boot boot/limine/limine-uefi-cd.bin \
-		-efi-boot-part --efi-boot-image --protective-msdos-label \
-		$(ISO_DIR) -o $(ISO_IMG)
-	$(LIMINE_EXEC) bios-install $(ISO_IMG)
-endif
-ifeq ($(ILOBILIX_ARCH),aarch64)
-	@cp -v $(LIMINE_DIR)/limine-uefi-cd.bin $(ISO_DIR)/boot/limine/
-	@cp -v $(LIMINE_DIR)/BOOTAA64.EFI $(ISO_DIR)/EFI/BOOT/
-	@xorriso -as mkisofs -R -r -J \
-		-hfsplus -apm-block-size 2048 \
-		--efi-boot boot/limine/limine-uefi-cd.bin \
-		-efi-boot-part --efi-boot-image --protective-msdos-label \
-		$(ISO_DIR) -o $(ISO_IMG)
-endif
-
-$(ISO_IMG):
-	$(MAKE) iso
-
-.PHONY: setup-kernel
+.PHONY: setup-kernel build-kernel kernel clean-kernel distclean-kernel
 setup-kernel:
 	cmake -S $(KERNEL_SOURCE_DIR) -B $(KERNEL_BUILD_DIR) \
 		-DCMAKE_BUILD_TYPE=$(ILOBILIX_BUILD_TYPE) \
@@ -174,75 +130,147 @@ setup-kernel:
 		-DILOBILIX_LIMINE_MP=$(ILOBILIX_LIMINE_MP) \
 		-DILOBILIX_UBSAN=$(ILOBILIX_UBSAN)
 
-.PHONY: build-kernel
-build-kernel:
+build-kernel: setup-kernel
 	cmake --build $(KERNEL_BUILD_DIR)
 
-.PHONY: clean-kernel
+kernel: build-kernel
+
+$(KERNEL_ELF): build-kernel
+
 clean-kernel:
 	cmake --build $(KERNEL_BUILD_DIR) --target clean
 
-.PHONY: setup-sysroot
-setup-sysroot:
-ifndef OVERRIDE_SYSROOT_DIR
-	@mkdir -vp $(JINX_BUILD_DIR)
-	-cd $(JINX_BUILD_DIR) && $(JINX_EXEC) init $(SOURCE_DIR) ARCH=$(ILOBILIX_ARCH)
-endif
-
-.PHONY: build-sysroot
-build-sysroot:
-ifndef OVERRIDE_SYSROOT_DIR
-	cd $(JINX_BUILD_DIR) && $(JINX_EXEC) build $(ILOBILIX_PACKAGES)
-endif
-
-.PHONY: rebuild-sysroot
-rebuild-sysroot:
-ifndef OVERRIDE_SYSROOT_DIR
-	cd $(JINX_BUILD_DIR) && $(JINX_EXEC) rebuild $(ILOBILIX_PACKAGES)
-endif
-
-.PHONY: install-sysroot
-install-sysroot:
-ifndef OVERRIDE_SYSROOT_DIR
-	cd $(JINX_BUILD_DIR) && $(JINX_EXEC) install $(SYSROOT_DIR) $(ILOBILIX_PACKAGES)
-endif
-
-.PHONY: clean-sysroot
-clean-sysroot:
-ifndef OVERRIDE_SYSROOT_DIR
-	rm -rvf $(SYSROOT_DIR)
-endif
-
-.PHONY: distclean-kernel
 distclean-kernel:
-	@rm -rvf $(KERNEL_BUILD_DIR)
+	@rm -rf $(KERNEL_BUILD_DIR)
 
-.PHONY: distclean-sysroot
+ifndef ILOBILIX_SYSROOT_DIR
+
+.PHONY: setup-sysroot build-sysroot install-sysroot rebuild-sysroot \
+        xbps-bootstrap clean-sysroot distclean-sysroot
+
+$(VOID_ROOTFS_CACHE):
+	@mkdir -p $(SYSROOT_CACHE_DIR)
+	@find $(SYSROOT_CACHE_DIR) -maxdepth 1 -name 'void-*-ROOTFS-*.tar.xz' ! -name '$(VOID_ROOTFS_TARBALL)' -delete
+	@echo "Downloading $(VOID_ROOTFS_TARBALL)"
+	curl -fL --progress-bar -o $@ $(VOID_ROOTFS_URL)
+
+setup-sysroot: $(VOID_ROOTFS_CACHE)
+
+$(SYSROOT_DIR)/.extracted: $(VOID_ROOTFS_CACHE)
+	@rm -rf $(SYSROOT_DIR)
+	@mkdir -p $(SYSROOT_DIR)
+	tar -xpf $(VOID_ROOTFS_CACHE) -C $(SYSROOT_DIR)
+	@touch $@
+
+build-sysroot: $(SYSROOT_DIR)/.extracted
+
+INSTALL_DEPS := build-sysroot
+ifneq ($(strip $(ILOBILIX_VOID_INSTALL))$(strip $(ILOBILIX_VOID_REMOVE)),)
+INSTALL_DEPS += xbps-bootstrap
+endif
+
+install-sysroot: $(INSTALL_DEPS)
+	$(SUPPORT_DIR)/sysroot-overlay.sh $(SOURCE_DIR)/base-files $(SYSROOT_DIR)
+ifneq ($(strip $(ILOBILIX_VOID_INSTALL))$(strip $(ILOBILIX_VOID_REMOVE)),)
+	$(XBPS_INSTALL) -Syu xbps
+endif
+ifneq ($(strip $(ILOBILIX_VOID_REMOVE)),)
+	$(XBPS_REMOVE) -Ry $(ILOBILIX_VOID_REMOVE)
+endif
+ifneq ($(strip $(ILOBILIX_VOID_INSTALL)),)
+	$(XBPS_INSTALL) -y $(ILOBILIX_VOID_INSTALL)
+endif
+
+rebuild-sysroot:
+	rm -rf $(SYSROOT_DIR)
+	$(MAKE) install-sysroot
+
+xbps-bootstrap: $(XBPS_BIN)/xbps-install
+
+$(XBPS_BIN)/xbps-install:
+	@mkdir -p $(XBPS_DIR) $(SYSROOT_CACHE_DIR)
+	@if [ ! -f $(XBPS_TARBALL) ]; then \
+		echo "Downloading xbps-static for $(XBPS_HOST_ARCH)"; \
+		curl -fL --progress-bar -o $(XBPS_TARBALL) $(XBPS_URL); \
+	fi
+	tar -xf $(XBPS_TARBALL) -C $(XBPS_DIR)
+
+clean-sysroot:
+	rm -rf $(SYSROOT_DIR)
+
 distclean-sysroot:
-	@rm -rvf $(JINX_BUILD_DIR)
+	@rm -rf $(SYSROOT_DIR) $(SYSROOT_CACHE_DIR) $(XBPS_DIR)
 
-.PHONY: clean-initramfs
+else
+
+.PHONY: setup-sysroot build-sysroot install-sysroot rebuild-sysroot \
+        xbps-bootstrap clean-sysroot distclean-sysroot
+setup-sysroot build-sysroot install-sysroot rebuild-sysroot \
+xbps-bootstrap clean-sysroot distclean-sysroot:
+	@:
+
+endif
+
+.PHONY: sysroot
+sysroot: install-sysroot
+
+$(INITRAMFS_IMG): $(KERNEL_ELF) install-sysroot
+	@rm -rf $(SYSROOT_DIR)/usr/lib/modules
+	@mkdir -p $(SYSROOT_DIR)/usr/lib/modules
+	@-cp -r $(MODULES_DIR)/noarch $(SYSROOT_DIR)/usr/lib/modules/
+	@-cp -r $(MODULES_DIR)/$(ILOBILIX_ARCH) $(SYSROOT_DIR)/usr/lib/modules/
+	tar --format ustar --owner=0 --group=0 --numeric-owner --exclude='./.extracted' -cf $@ -C $(SYSROOT_DIR) ./
+
+.PHONY: initramfs clean-initramfs distclean-initramfs
+initramfs: $(INITRAMFS_IMG)
+
 clean-initramfs:
-	@rm -v $(INITRAMFS_IMG)
+	@rm -f $(INITRAMFS_IMG)
 
-.PHONY: clean-initramfs
 distclean-initramfs:
-	@rm -rvf $(INITRAMFS_IMG) $(MODULES_DIR)
+	@rm -rf $(INITRAMFS_IMG) $(MODULES_DIR)
 
-.PHONY: clean-iso
+$(ISO_IMG): $(KERNEL_ELF) $(INITRAMFS_IMG) $(LIMINE_CONF)
+	@rm -rf $(ISO_DIR)
+	@mkdir -p $(ISO_DIR)/boot/limine $(ISO_DIR)/EFI/BOOT
+	@cp $(KERNEL_ELF) $(ISO_DIR)/boot/kernel.elf
+	@cp $(INITRAMFS_IMG) $(ISO_DIR)/boot/initramfs.img
+	@cp $(LIMINE_CONF) $(ISO_DIR)/boot
+ifeq ($(ILOBILIX_ARCH),x86_64)
+	@cp $(LIMINE_DIR)/limine-bios.sys $(LIMINE_DIR)/limine-bios-cd.bin $(LIMINE_DIR)/limine-uefi-cd.bin $(ISO_DIR)/boot/limine/
+	@cp $(LIMINE_DIR)/BOOTX64.EFI $(ISO_DIR)/EFI/BOOT/
+	@cp $(LIMINE_DIR)/BOOTIA32.EFI $(ISO_DIR)/EFI/BOOT/
+	xorriso -as mkisofs -R -r -J -b boot/limine/limine-bios-cd.bin \
+		-no-emul-boot -boot-load-size 4 -boot-info-table -hfsplus \
+		-apm-block-size 2048 --efi-boot boot/limine/limine-uefi-cd.bin \
+		-efi-boot-part --efi-boot-image --protective-msdos-label \
+		$(ISO_DIR) -o $@
+	$(LIMINE_EXEC) bios-install $@
+endif
+ifeq ($(ILOBILIX_ARCH),aarch64)
+	@cp $(LIMINE_DIR)/limine-uefi-cd.bin $(ISO_DIR)/boot/limine/
+	@cp $(LIMINE_DIR)/BOOTAA64.EFI $(ISO_DIR)/EFI/BOOT/
+	xorriso -as mkisofs -R -r -J \
+		-hfsplus -apm-block-size 2048 \
+		--efi-boot boot/limine/limine-uefi-cd.bin \
+		-efi-boot-part --efi-boot-image --protective-msdos-label \
+		$(ISO_DIR) -o $@
+endif
+
+.PHONY: iso clean-iso
+iso: $(ISO_IMG)
+
 clean-iso:
-	@rm -v $(ISO_IMG)
+	@rm -f $(ISO_IMG)
 
 # .PHONY: distclean
 # distclean: distclean-kernel distclean-sysroot
 
-.PHONY: run-iso
+.PHONY: run-iso run-iso-uefi run-iso-bios
 run-iso: run-iso-uefi
 
-.PHONY: run-iso-uefi
 run-iso-uefi:
 	$(QEMU_EXEC) $(QEMU_ARGS) -bios $(OVMF_BIN) -cdrom $(ISO_IMG)
 
-.PHONY: run-iso-bios
 run-iso-bios:
 	$(QEMU_EXEC) $(QEMU_ARGS) -cdrom $(ISO_IMG)

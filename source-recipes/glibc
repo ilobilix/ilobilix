@@ -1,6 +1,0 @@
-#!/bin/sh
-
-name=glibc
-version=2.43 # don't forget to update the version in gcc-stage1 as well
-tarball_url="https://ftpmirror.gnu.org/glibc/glibc-${version}.tar.xz"
-tarball_blake2b="a764edf3d0d52809aa94cf1a8f73341159d226ecc2a595aa3c9e1d1fd4b2d4eb9a599d70bda8812b73d8ef58b39746efdd34026772e38c0f091fe071d461ea98"

@@ -5,7 +5,3 @@
 	path = support/ovmf-binaries
 	url = https://github.com/ilobilo/ovmf-binaries
 	shallow = true
-[submodule "support/jinx"]
-	path = support/jinx
-	url = https://codeberg.org/mintsuki/jinx
-	shallow = true
