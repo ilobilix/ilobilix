@@ -60,8 +60,13 @@ endif
 override XBPS_INSTALL := $(XBPS_ENV) $(XBPS_BIN)/xbps-install -R $(VOID_REPO_URL) -r $(SYSROOT_DIR)
 override XBPS_REMOVE := $(XBPS_ENV) $(XBPS_BIN)/xbps-remove -r $(SYSROOT_DIR)
 
-override LIMINE_DIR := $(KERNEL_SOURCE_DIR)/dependencies/limine/limine
-override LIMINE_EXEC := $(KERNEL_BUILD_DIR)/dependencies/limine/limine
+override LIMINE_VERSION := 12.1.0
+override LIMINE_CACHE_DIR := $(SUPPORT_DIR)/limine
+override LIMINE_TARBALL := limine-binary-$(LIMINE_VERSION).tar.xz
+override LIMINE_URL := https://github.com/Limine-Bootloader/Limine/releases/download/v$(LIMINE_VERSION)/limine-binary.tar.xz
+override LIMINE_CACHE := $(LIMINE_CACHE_DIR)/$(LIMINE_TARBALL)
+override LIMINE_DIR := $(LIMINE_CACHE_DIR)/limine-$(LIMINE_VERSION)
+override LIMINE_EXEC := $(LIMINE_DIR)/limine
 override LIMINE_CONF := $(SUPPORT_DIR)/limine.conf
 
 override KERNEL_ELF := $(KERNEL_BUILD_DIR)/kernel/source/kernel_elf
@@ -236,7 +241,32 @@ clean-initramfs:
 distclean-initramfs:
 	@rm -rf $(INITRAMFS_IMG) $(MODULES_DIR)
 
-$(ISO_IMG): $(KERNEL_ELF) $(INITRAMFS_IMG) $(LIMINE_CONF)
+$(LIMINE_CACHE):
+	@mkdir -p $(LIMINE_CACHE_DIR)
+	@find $(LIMINE_CACHE_DIR) -maxdepth 1 -name 'limine-binary-*.tar.xz' ! -name '$(LIMINE_TARBALL)' -delete
+	@echo "Downloading $(LIMINE_TARBALL)"
+	curl -fL --progress-bar -o $@ $(LIMINE_URL)
+
+$(LIMINE_DIR)/.extracted: $(LIMINE_CACHE)
+	@rm -rf $(LIMINE_DIR)
+	@mkdir -p $(LIMINE_DIR)
+	tar -xpf $(LIMINE_CACHE) -C $(LIMINE_DIR) --strip-components=1
+	@touch $@
+
+$(LIMINE_EXEC): $(LIMINE_DIR)/.extracted
+	$(MAKE) -C $(LIMINE_DIR)
+	@touch $@
+
+.PHONY: limine clean-limine distclean-limine
+limine: $(LIMINE_EXEC)
+
+clean-limine:
+	@rm -rf $(LIMINE_DIR)
+
+distclean-limine:
+	@rm -rf $(LIMINE_CACHE_DIR)
+
+$(ISO_IMG): $(KERNEL_ELF) $(INITRAMFS_IMG) $(LIMINE_CONF) $(LIMINE_EXEC)
 	@rm -rf $(ISO_DIR)
 	@mkdir -p $(ISO_DIR)/boot/limine $(ISO_DIR)/EFI/BOOT
 	@cp $(KERNEL_ELF) $(ISO_DIR)/boot/kernel.elf

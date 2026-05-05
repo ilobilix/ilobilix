@@ -4,6 +4,8 @@
 /build-*
 /sources
 
+/support/limine
+
 /serial.txt
 /log.txt
 /syscall_log.txt
