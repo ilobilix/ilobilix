@@ -88,7 +88,7 @@ override QEMU_ARGS += \
 	-smp $(QEMU_SMP) \
 	-no-reboot \
 	-no-shutdown \
-	-rtc base=localtime \
+	-rtc base=utc \
 	-boot order=d,menu=on,splash-time=0 \
 	-device virtio-keyboard-pci \
 	-device virtio-tablet-pci \
