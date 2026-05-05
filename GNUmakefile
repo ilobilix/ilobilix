@@ -90,11 +90,12 @@ override QEMU_ARGS += \
 	-no-shutdown \
 	-rtc base=localtime \
 	-boot order=d,menu=on,splash-time=0 \
+	-device virtio-keyboard-pci \
+	-device virtio-tablet-pci \
 	-chardev stdio,id=char0,signal=off,mux=on \
 	-serial chardev:char0 \
 	-mon chardev=char0,mode=readline
 # 	-debugcon file:$(BUILD_DIR)/syscall_log.txt
-# 	-serial stdio
 
 ifeq ($(ILOBILIX_ARCH),x86_64)
 override QEMU_ARGS += \
