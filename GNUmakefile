@@ -84,7 +84,7 @@ endif
 
 override QEMU_EXEC := qemu-system-$(ILOBILIX_ARCH)
 override QEMU_ARGS += \
-	-m 8G \
+	-m 4G \
 	-smp $(QEMU_SMP) \
 	-no-reboot \
 	-no-shutdown \
