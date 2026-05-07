@@ -15,6 +15,15 @@ if [ ! -d "$dst" ]; then
     exit 1
 fi
 
+if [ -f "$src/remove" ]; then
+    while IFS= read -r line || [ -n "$line" ]; do
+        case $line in
+            ''|\#*) continue ;;
+        esac
+        rm -rf "$dst/${line#/}"
+    done < "$src/remove"
+fi
+
 if [ -d "$src/overlay" ]; then
     cp -af "$src/overlay/." "$dst/"
     find "$dst" -name .keep -type f -delete

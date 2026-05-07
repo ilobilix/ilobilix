@@ -1,0 +1,6 @@
+/etc/runit/runsvdir/default/agetty-tty1
+/etc/runit/runsvdir/default/agetty-tty2
+/etc/runit/runsvdir/default/agetty-tty3
+/etc/runit/runsvdir/default/agetty-tty4
+/etc/runit/runsvdir/default/agetty-tty5
+/etc/runit/runsvdir/default/agetty-tty6
