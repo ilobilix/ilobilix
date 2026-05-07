@@ -1,6 +1,8 @@
-/etc/runit/runsvdir/default/agetty-tty1
-/etc/runit/runsvdir/default/agetty-tty2
-/etc/runit/runsvdir/default/agetty-tty3
-/etc/runit/runsvdir/default/agetty-tty4
-/etc/runit/runsvdir/default/agetty-tty5
-/etc/runit/runsvdir/default/agetty-tty6
+/usr/share/man
+/usr/share/info
+/usr/share/doc
+/usr/share/gtk-doc
+/usr/share/locale
+/usr/share/i18n
+/usr/lib/python3.13/__pycache__
+/usr/lib/python3.14/__pycache__

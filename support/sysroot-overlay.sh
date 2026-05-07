@@ -59,18 +59,11 @@ fi
 if [ -f "$dst/etc/shadow" ]; then
     saved_mode=$(stat -c %a "$dst/etc/shadow")
     chmod u+rw "$dst/etc/shadow"
-    sed -i \
-        -e 's|^root:\$[^:]*:|root::|' \
-        -e 's|^\(root:.*\):/bin/sh$|\1:/bin/bash|' \
-        "$dst/etc/shadow" "$dst/etc/passwd"
+    sed -i 's|^root:[^:]*:|root::|' "$dst/etc/shadow"
     chmod "$saved_mode" "$dst/etc/shadow"
 fi
 
-# :trl:
-[ -f "$dst/etc/runit/1" ] && sed -i 's|Welcome to Void!|Welcome to Ilobilix!|' "$dst/etc/runit/1"
-[ -f "$dst/usr/bin/lsb_release" ] && sed -i \
-    -e 's|^distributor_id="VoidLinux"|distributor_id="Ilobilix"|' \
-    -e 's|^description="Void Linux"|description="Ilobilix"|' \
-    -e 's|^codename="void"|codename="ilobilix"|' \
-    "$dst/usr/bin/lsb_release"
+# TODO: install elogind
+[ -f "$dst/etc/pam.d/system-login" ] && \
+    sed -i '/pam_openrc\.so/d' "$dst/etc/pam.d/system-login"
 :

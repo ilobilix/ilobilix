@@ -7,9 +7,14 @@ ILOBILIX_LTO ?= OFF
 ILOBILIX_LIMINE_MP ?= ON
 ILOBILIX_UBSAN ?= OFF
 
-ILOBILIX_VOID_ROOTFS_DATE ?= 20250202
-ILOBILIX_VOID_INSTALL ?=
-ILOBILIX_VOID_REMOVE ?=
+ifeq ($(ILOBILIX_ARCH),x86_64)
+override _GENTOO_ARCH := amd64
+ILOBILIX_GENTOO_STAGE3_DATE ?= 20260503T164604Z
+endif
+ifeq ($(ILOBILIX_ARCH),aarch64)
+override _GENTOO_ARCH := arm64
+ILOBILIX_GENTOO_STAGE3_DATE ?= 20260503T230109Z
+endif
 
 QEMU_ACCEL ?= ON
 QEMU_LOG ?= OFF
@@ -30,35 +35,9 @@ ifdef ILOBILIX_SYSROOT_DIR
 override SYSROOT_DIR := $(abspath $(ILOBILIX_SYSROOT_DIR))
 endif
 
-override VOID_ROOTFS_TARBALL := void-$(ILOBILIX_ARCH)-ROOTFS-$(ILOBILIX_VOID_ROOTFS_DATE).tar.xz
-override VOID_ROOTFS_URL := https://repo-default.voidlinux.org/live/$(ILOBILIX_VOID_ROOTFS_DATE)/$(VOID_ROOTFS_TARBALL)
-override VOID_ROOTFS_CACHE := $(SYSROOT_CACHE_DIR)/$(VOID_ROOTFS_TARBALL)
-
-ifeq ($(ILOBILIX_ARCH),x86_64)
-override VOID_REPO_URL := https://repo-default.voidlinux.org/current
-endif
-ifeq ($(ILOBILIX_ARCH),aarch64)
-override VOID_REPO_URL := https://repo-default.voidlinux.org/current/aarch64
-endif
-
-override XBPS_HOST_ARCH := $(shell uname -m)
-override XBPS_DIR := $(BUILD_DIR)/xbps
-override XBPS_BIN := $(XBPS_DIR)/usr/bin
-override XBPS_TARBALL := $(SYSROOT_CACHE_DIR)/xbps-static-$(XBPS_HOST_ARCH).tar.xz
-override XBPS_URL := https://repo-default.voidlinux.org/static/xbps-static-latest.$(XBPS_HOST_ARCH)-musl.tar.xz
-
-override CA_BUNDLE := $(firstword $(wildcard \
-	/etc/ssl/certs/ca-certificates.crt \
-	/etc/ssl/certs/ca-bundle.crt \
-	/etc/pki/tls/certs/ca-bundle.crt \
-	/etc/ssl/cert.pem))
-override XBPS_ENV := XBPS_TARGET_ARCH=$(ILOBILIX_ARCH)
-ifneq ($(CA_BUNDLE),)
-override XBPS_ENV += SSL_CA_CERT_FILE=$(CA_BUNDLE)
-endif
-
-override XBPS_INSTALL := $(XBPS_ENV) $(XBPS_BIN)/xbps-install -R $(VOID_REPO_URL) -r $(SYSROOT_DIR)
-override XBPS_REMOVE := $(XBPS_ENV) $(XBPS_BIN)/xbps-remove -r $(SYSROOT_DIR)
+override GENTOO_STAGE3_TARBALL := stage3-$(_GENTOO_ARCH)-openrc-$(ILOBILIX_GENTOO_STAGE3_DATE).tar.xz
+override GENTOO_STAGE3_URL := https://distfiles.gentoo.org/releases/$(_GENTOO_ARCH)/autobuilds/$(ILOBILIX_GENTOO_STAGE3_DATE)/$(GENTOO_STAGE3_TARBALL)
+override GENTOO_STAGE3_CACHE := $(SYSROOT_CACHE_DIR)/$(GENTOO_STAGE3_TARBALL)
 
 override LIMINE_VERSION := 12.1.0
 override LIMINE_CACHE_DIR := $(SUPPORT_DIR)/limine
@@ -89,7 +68,7 @@ endif
 
 override QEMU_EXEC := qemu-system-$(ILOBILIX_ARCH)
 override QEMU_ARGS += \
-	-m 4G \
+	-m 8G \
 	-smp $(QEMU_SMP) \
 	-no-reboot \
 	-no-shutdown \
@@ -157,67 +136,43 @@ distclean-kernel:
 ifndef ILOBILIX_SYSROOT_DIR
 
 .PHONY: setup-sysroot build-sysroot install-sysroot rebuild-sysroot \
-        xbps-bootstrap clean-sysroot distclean-sysroot
+        clean-sysroot distclean-sysroot
 
-$(VOID_ROOTFS_CACHE):
+$(GENTOO_STAGE3_CACHE):
 	@mkdir -p $(SYSROOT_CACHE_DIR)
-	@find $(SYSROOT_CACHE_DIR) -maxdepth 1 -name 'void-*-ROOTFS-*.tar.xz' ! -name '$(VOID_ROOTFS_TARBALL)' -delete
-	@echo "Downloading $(VOID_ROOTFS_TARBALL)"
-	curl -fL --progress-bar -o $@ $(VOID_ROOTFS_URL)
+	@find $(SYSROOT_CACHE_DIR) -maxdepth 1 -name 'stage3-*-openrc-*.tar.xz' ! -name '$(GENTOO_STAGE3_TARBALL)' -delete
+	@echo "Downloading $(GENTOO_STAGE3_TARBALL)"
+	curl -fL --progress-bar -o $@ $(GENTOO_STAGE3_URL)
 
-setup-sysroot: $(VOID_ROOTFS_CACHE)
+setup-sysroot: $(GENTOO_STAGE3_CACHE)
 
-$(SYSROOT_DIR)/.extracted: $(VOID_ROOTFS_CACHE)
+$(SYSROOT_DIR)/.extracted: $(GENTOO_STAGE3_CACHE)
 	@rm -rf $(SYSROOT_DIR)
 	@mkdir -p $(SYSROOT_DIR)
-	tar -xpf $(VOID_ROOTFS_CACHE) -C $(SYSROOT_DIR)
+	tar -xpf $(GENTOO_STAGE3_CACHE) -C $(SYSROOT_DIR) --exclude='./dev/*'
 	@touch $@
 
 build-sysroot: $(SYSROOT_DIR)/.extracted
 
-INSTALL_DEPS := build-sysroot
-ifneq ($(strip $(ILOBILIX_VOID_INSTALL))$(strip $(ILOBILIX_VOID_REMOVE)),)
-INSTALL_DEPS += xbps-bootstrap
-endif
-
-install-sysroot: $(INSTALL_DEPS)
+install-sysroot: build-sysroot
 	$(SUPPORT_DIR)/sysroot-overlay.sh $(SOURCE_DIR)/base-files $(SYSROOT_DIR)
-ifneq ($(strip $(ILOBILIX_VOID_INSTALL))$(strip $(ILOBILIX_VOID_REMOVE)),)
-	$(XBPS_INSTALL) -Syu xbps
-endif
-ifneq ($(strip $(ILOBILIX_VOID_REMOVE)),)
-	$(XBPS_REMOVE) -Ry $(ILOBILIX_VOID_REMOVE)
-endif
-ifneq ($(strip $(ILOBILIX_VOID_INSTALL)),)
-	$(XBPS_INSTALL) -y $(ILOBILIX_VOID_INSTALL)
-endif
 
 rebuild-sysroot:
 	rm -rf $(SYSROOT_DIR)
 	$(MAKE) install-sysroot
 
-xbps-bootstrap: $(XBPS_BIN)/xbps-install
-
-$(XBPS_BIN)/xbps-install:
-	@mkdir -p $(XBPS_DIR) $(SYSROOT_CACHE_DIR)
-	@if [ ! -f $(XBPS_TARBALL) ]; then \
-		echo "Downloading xbps-static for $(XBPS_HOST_ARCH)"; \
-		curl -fL --progress-bar -o $(XBPS_TARBALL) $(XBPS_URL); \
-	fi
-	tar -xf $(XBPS_TARBALL) -C $(XBPS_DIR)
-
 clean-sysroot:
 	rm -rf $(SYSROOT_DIR)
 
 distclean-sysroot:
-	@rm -rf $(SYSROOT_DIR) $(SYSROOT_CACHE_DIR) $(XBPS_DIR)
+	@rm -rf $(SYSROOT_DIR) $(SYSROOT_CACHE_DIR)
 
 else
 
 .PHONY: setup-sysroot build-sysroot install-sysroot rebuild-sysroot \
-        xbps-bootstrap clean-sysroot distclean-sysroot
+        clean-sysroot distclean-sysroot
 setup-sysroot build-sysroot install-sysroot rebuild-sysroot \
-xbps-bootstrap clean-sysroot distclean-sysroot:
+clean-sysroot distclean-sysroot:
 	@:
 
 endif
@@ -225,15 +180,46 @@ endif
 .PHONY: sysroot
 sysroot: install-sysroot
 
+.PHONY: chroot-sysroot
+chroot-sysroot:
+	@if [ ! -d "$(SYSROOT_DIR)" ]; then \
+		echo "sysroot not built; run 'make install-sysroot'" >&2; exit 1; \
+	fi
+	@command -v bwrap >/dev/null 2>&1 || { \
+		echo "bwrap not found; install bubblewrap" >&2; exit 1; \
+	}
+	bwrap \
+		--bind $(SYSROOT_DIR) / \
+		--proc /proc --dev /dev \
+		--bind /sys /sys \
+		--tmpfs /tmp --tmpfs /run \
+		--ro-bind /etc/resolv.conf /etc/resolv.conf \
+		--ro-bind-try /etc/hosts /etc/hosts \
+		--uid 0 --gid 0 \
+		--unshare-all --share-net \
+		--die-with-parent --chdir / \
+		--setenv HOME /root \
+		--setenv LANG C.UTF-8 \
+		--setenv LC_ALL C.UTF-8 \
+		--setenv PORTAGE_USERNAME root \
+		--setenv PORTAGE_GRPNAME root \
+		--setenv FEATURES "-userpriv -usersandbox -userfetch -usersync -ipc-sandbox -mount-sandbox -network-sandbox -pid-sandbox -sandbox" \
+		/bin/bash
+
 $(INITRAMFS_IMG): $(KERNEL_ELF) install-sysroot
 	@rm -rf $(SYSROOT_DIR)/usr/lib/modules
 	@mkdir -p $(MODULES_INSTALL_DIR)
 	@-cp -r $(MODULES_DIR)/noarch/. $(MODULES_INSTALL_DIR)/
 	@-cp -r $(MODULES_DIR)/$(ILOBILIX_ARCH)/. $(MODULES_INSTALL_DIR)/
-	tar --format ustar --owner=0 --group=0 --numeric-owner \
+	tar --format gnu --owner=0 --group=0 --numeric-owner \
 		--exclude='./.extracted' --exclude='./home/ilobilix' \
+		--exclude='./var/db' --exclude='./var/cache' \
+		--exclude='./usr/lib/python3.13/site-packages/portage' \
+		--exclude='./usr/lib/python3.13/site-packages/_emerge' \
+		--exclude='./usr/lib/python3.14/site-packages/portage' \
+		--exclude='./usr/lib/python3.14/site-packages/_emerge' \
 		-cf $@ -C $(SYSROOT_DIR) ./
-	tar --format ustar --owner=1000 --group=1000 --numeric-owner \
+	tar --format gnu --owner=1000 --group=1000 --numeric-owner \
 		-cf $(BUILD_DIR)/initramfs-ilobilix.tar -C $(SYSROOT_DIR) ./home/ilobilix
 	tar --concatenate -f $@ $(BUILD_DIR)/initramfs-ilobilix.tar
 	@rm -f $(BUILD_DIR)/initramfs-ilobilix.tar
