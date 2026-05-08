@@ -24,7 +24,10 @@
         "icons",
         "font",
         "cursor",
-        "terminal",
+        {
+            "type": "terminal",
+            "format": "Linux Console"
+        },
         "terminalfont",
         "cpu",
         "gpu",

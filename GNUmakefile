@@ -230,10 +230,10 @@ $(INITRAMFS_IMG): $(KERNEL_ELF) install-sysroot
 	@mkdir -p $(MODULES_INSTALL_DIR)
 	@-cp -r $(MODULES_DIR)/noarch/. $(MODULES_INSTALL_DIR)/
 	@-cp -r $(MODULES_DIR)/$(ILOBILIX_ARCH)/. $(MODULES_INSTALL_DIR)/
-	tar --format ustar --owner=0 --group=0 --numeric-owner \
+	tar --format gnu --owner=0 --group=0 --numeric-owner \
 		--exclude='./.extracted' --exclude='./home/ilobilix' \
 		-cf $@ -C $(SYSROOT_DIR) ./
-	tar --format ustar --owner=1000 --group=1000 --numeric-owner \
+	tar --format gnu --owner=1000 --group=1000 --numeric-owner \
 		-cf $(BUILD_DIR)/initramfs-ilobilix.tar -C $(SYSROOT_DIR) ./home/ilobilix
 	tar --concatenate -f $@ $(BUILD_DIR)/initramfs-ilobilix.tar
 	@rm -f $(BUILD_DIR)/initramfs-ilobilix.tar
