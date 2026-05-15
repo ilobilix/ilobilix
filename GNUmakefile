@@ -99,13 +99,13 @@ override QEMU_ARGS += \
 	-device virtio-tablet-pci \
 	-chardev stdio,id=char0,signal=off,mux=on \
 	-serial chardev:char0 \
-	-mon chardev=char0,mode=readline \
-	-debugcon file:$(BUILD_DIR)/syscall_log.txt
+	-mon chardev=char0,mode=readline
 
 ifeq ($(ILOBILIX_ARCH),x86_64)
 override QEMU_ARGS += \
 	-cpu max,migratable=off,+invtsc,+tsc-deadline \
-	-M q35,smm=off
+	-M q35,smm=off \
+	-debugcon file:$(BUILD_DIR)/syscall_log.txt
 endif
 ifeq ($(ILOBILIX_ARCH),aarch64)
 override QEMU_ARGS += \
