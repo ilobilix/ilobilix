@@ -6,6 +6,10 @@ ILOBILIX_LTO ?= OFF
 ILOBILIX_LIMINE_MP ?= ON
 ILOBILIX_UBSAN ?= OFF
 
+# TODO: change once initramfs only contains modules
+ILOBILIX_DISK_ESP_SIZE_MB ?= 1024
+ILOBILIX_DISK_ROOT_SIZE_MB ?= 256
+
 ILOBILIX_VOID_ROOTFS_DATE ?= 20250202
 ILOBILIX_VOID_INSTALL ?=
 ILOBILIX_VOID_REMOVE ?=
@@ -72,6 +76,9 @@ override KERNEL_ELF := $(KERNEL_BUILD_DIR)/kernel/source/kernel_elf
 override MODULES_DIR := $(KERNEL_BUILD_DIR)/modules/modules
 override INITRAMFS_IMG := $(BUILD_DIR)/initramfs.tar
 override ISO_IMG := $(BUILD_DIR)/image.iso
+override DISK_IMG := $(BUILD_DIR)/image.img
+override DISK_ESP_IMG := $(BUILD_DIR)/disk-esp.img
+override DISK_ROOT_IMG := $(BUILD_DIR)/disk-root.img
 
 override KERNEL_VERSION := $(shell sed -n '/project(/,/)/{s/.*\bVERSION[[:space:]]\+\([0-9][0-9.]*\).*/\1/p;}' $(KERNEL_SOURCE_DIR)/CMakeLists.txt | head -1)
 override KERNEL_GIT_COMMIT := $(shell git -C $(KERNEL_SOURCE_DIR) rev-parse --short HEAD 2>/dev/null)
@@ -128,7 +135,7 @@ override QEMU_ARGS += -s -S
 endif
 
 .PHONY: all
-all: $(ISO_IMG)
+all: $(DISK_IMG)
 
 .PHONY: setup-kernel build-kernel kernel clean-kernel distclean-kernel
 setup-kernel:
@@ -303,8 +310,53 @@ iso: $(ISO_IMG)
 clean-iso:
 	@rm -f $(ISO_IMG)
 
+$(DISK_IMG): $(KERNEL_ELF) $(INITRAMFS_IMG) $(LIMINE_CONF) $(LIMINE_EXEC)
+	@rm -f $(DISK_IMG) $(DISK_ESP_IMG) $(DISK_ROOT_IMG)
+	truncate -s $(ILOBILIX_DISK_ESP_SIZE_MB)M $(DISK_ESP_IMG)
+	mformat -i $(DISK_ESP_IMG) -F -v ESP ::
+	mmd -i $(DISK_ESP_IMG) ::/boot ::/boot/limine ::/EFI ::/EFI/BOOT
+	mcopy -i $(DISK_ESP_IMG) $(KERNEL_ELF) ::/boot/kernel.elf
+	mcopy -i $(DISK_ESP_IMG) $(INITRAMFS_IMG) ::/boot/initramfs.img
+	mcopy -i $(DISK_ESP_IMG) $(LIMINE_CONF) ::/boot/
+ifeq ($(ILOBILIX_ARCH),x86_64)
+	mcopy -i $(DISK_ESP_IMG) $(LIMINE_DIR)/limine-bios.sys ::/boot/limine/
+	mcopy -i $(DISK_ESP_IMG) $(LIMINE_DIR)/BOOTX64.EFI ::/EFI/BOOT/
+	mcopy -i $(DISK_ESP_IMG) $(LIMINE_DIR)/BOOTIA32.EFI ::/EFI/BOOT/
+endif
+ifeq ($(ILOBILIX_ARCH),aarch64)
+	mcopy -i $(DISK_ESP_IMG) $(LIMINE_DIR)/BOOTAA64.EFI ::/EFI/BOOT/
+endif
+	truncate -s $(ILOBILIX_DISK_ROOT_SIZE_MB)M $(DISK_ROOT_IMG)
+	mke2fs -q -t ext2 -F -L ilobilix-root $(DISK_ROOT_IMG)
+	truncate -s $$(( ($(ILOBILIX_DISK_ESP_SIZE_MB) + $(ILOBILIX_DISK_ROOT_SIZE_MB) + 3) * 1024 * 1024 )) $(DISK_IMG)
+	sgdisk --clear \
+		--new=1:2048:+1M --typecode=1:ef02 --change-name=1:"BIOS boot" \
+		--new=2:0:+$(ILOBILIX_DISK_ESP_SIZE_MB)M --typecode=2:ef00 --change-name=2:"EFI System" \
+		--new=3:0:+$(ILOBILIX_DISK_ROOT_SIZE_MB)M --typecode=3:8300 --change-name=3:"ilobilix-root" \
+		$(DISK_IMG) >/dev/null
+	dd if=$(DISK_ESP_IMG) of=$(DISK_IMG) bs=1M seek=2 conv=notrunc status=none
+	dd if=$(DISK_ROOT_IMG) of=$(DISK_IMG) bs=1M seek=$$(( $(ILOBILIX_DISK_ESP_SIZE_MB) + 2 )) conv=notrunc status=none
+ifeq ($(ILOBILIX_ARCH),x86_64)
+	$(LIMINE_EXEC) bios-install $(DISK_IMG)
+endif
+
+.PHONY: disk clean-disk
+disk: $(DISK_IMG)
+
+clean-disk:
+	@rm -f $(DISK_IMG) $(DISK_ESP_IMG) $(DISK_ROOT_IMG)
+
 # .PHONY: distclean
 # distclean: distclean-kernel distclean-sysroot
+
+.PHONY: run run-uefi run-bios
+run: run-uefi
+
+run-uefi:
+	$(QEMU_EXEC) $(QEMU_ARGS) -bios $(OVMF_BIN) -drive file=$(DISK_IMG),format=raw,if=virtio
+
+run-bios:
+	$(QEMU_EXEC) $(QEMU_ARGS) -drive file=$(DISK_IMG),format=raw,if=virtio
 
 .PHONY: run-iso run-iso-uefi run-iso-bios
 run-iso: run-iso-uefi

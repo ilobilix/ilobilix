@@ -19,16 +19,18 @@ Contributors are welcome! Feel free to open issues or submit pull requests.
   * ``make``
   * ``cmake``
   * ``ninja``
-  * ``xorriso``
+  * ``mtools``
+  * ``sgdisk``
+  * ``xorriso`` (for iso)
   * ``qemu-system``
   * ``curl``
   * ``tar``
 * Clone this repository:
   * ``git clone https://github.com/ilobilix/ilobilix --recursive``
 * Build Ilobilix:
-  * ``make all``
+  * ``make``
 * Run the OS in QEMU:
-  * ``make run-iso``
+  * ``make run``
   * You can exit QEMU in the terminal with: ``ctrl+a x``
 
 ## Configurable Environment Variables
