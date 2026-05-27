@@ -111,7 +111,7 @@ ifeq ($(ILOBILIX_ARCH),x86_64)
 override QEMU_ARGS += \
 	-cpu max,migratable=off,+invtsc,+tsc-deadline \
 	-M q35,smm=off \
-	-debugcon file:$(BUILD_DIR)/syscall_log.txt
+	-debugcon file:$(BUILD_DIR)/kernel_log.txt
 endif
 ifeq ($(ILOBILIX_ARCH),aarch64)
 override QEMU_ARGS += \
@@ -128,7 +128,7 @@ endif
 endif
 endif
 ifeq ($(QEMU_LOG),ON)
-override QEMU_ARGS += -d int -D $(BUILD_DIR)/log.txt
+override QEMU_ARGS += -d int -D $(BUILD_DIR)/qemu_log.txt
 endif
 ifeq ($(QEMU_GDB),ON)
 override QEMU_ARGS += -s -S
