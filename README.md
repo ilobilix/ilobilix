@@ -1,5 +1,6 @@
 # Ilobilix
-Monolithic Hobby OS in modern C++ 23 utilising modules where possible. It has support for custom loadable kernel modules. Its userspace aims to be ABI compatible with GNU/Linux.
+
+Monolithic hobby kernel written in modern C++26 with modules. Aims for Linux ABI compatibility in userspace.
 
 Contributors are welcome! Feel free to open issues or submit pull requests.
 
