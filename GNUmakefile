@@ -107,6 +107,12 @@ override QEMU_ARGS += \
 	-serial chardev:char0 \
 	-mon chardev=char0,mode=readline
 
+override QEMU_DISK_ARGS := \
+	-drive file=$(DISK_IMG),format=raw,if=none,id=drive-nvme0 \
+	-device nvme,serial=deadbeef,drive=drive-nvme0
+# 	-drive file=$(DISK_IMG),format=raw,if=none,id=drive-virtio0 \
+# 	-device virtio-blk-pci,drive=drive-virtio0
+
 ifeq ($(ILOBILIX_ARCH),x86_64)
 override QEMU_ARGS += \
 	-cpu max,migratable=off,+invtsc,+tsc-deadline \
@@ -353,10 +359,10 @@ clean-disk:
 run: run-uefi
 
 run-uefi:
-	$(QEMU_EXEC) $(QEMU_ARGS) -bios $(OVMF_BIN) -drive file=$(DISK_IMG),format=raw,if=virtio
+	$(QEMU_EXEC) $(QEMU_ARGS) $(QEMU_DISK_ARGS) -bios $(OVMF_BIN)
 
 run-bios:
-	$(QEMU_EXEC) $(QEMU_ARGS) -drive file=$(DISK_IMG),format=raw,if=virtio
+	$(QEMU_EXEC) $(QEMU_ARGS) $(QEMU_DISK_ARGS)
 
 .PHONY: run-iso run-iso-uefi run-iso-bios
 run-iso: run-iso-uefi
