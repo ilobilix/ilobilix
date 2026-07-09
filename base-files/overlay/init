@@ -1,9 +1,0 @@
-#!/bin/sh
-
-# TODO: temporary
-
-echo Welcome to Ilobilix!
-
-chown -R ilobilix:ilobilix /home/ilobilix
-
-exec su - ilobilix -s /bin/bash
