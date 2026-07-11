@@ -9,6 +9,7 @@ ILOBILIX_UBSAN ?= OFF
 # TODO: change once initramfs only contains modules
 ILOBILIX_DISK_ESP_SIZE_MB ?= 1024
 ILOBILIX_DISK_ROOT_SIZE_MB ?= 256
+ILOBILIX_DISK_PART_TABLE ?= gpt
 
 ILOBILIX_VOID_ROOTFS_DATE ?= 20250202
 ILOBILIX_VOID_INSTALL ?=
@@ -73,6 +74,8 @@ override LIMINE_EXEC := $(LIMINE_DIR)/limine
 override LIMINE_CONF := $(SUPPORT_DIR)/limine.conf
 
 override KERNEL_ELF := $(KERNEL_BUILD_DIR)/kernel/source/kernel_elf
+override MODULES_BUILTIN := $(KERNEL_BUILD_DIR)/modules.builtin
+override MODULES_BUILTIN_MODINFO := $(KERNEL_BUILD_DIR)/kernel/source/modules.builtin.modinfo
 override MODULES_DIR := $(KERNEL_BUILD_DIR)/modules/modules
 override INITRAMFS_IMG := $(BUILD_DIR)/initramfs.tar
 override ISO_IMG := $(BUILD_DIR)/image.iso
@@ -108,7 +111,7 @@ override QEMU_ARGS += \
 	-mon chardev=char0,mode=readline
 
 override QEMU_DISK_ARGS := \
-	-drive file=$(DISK_IMG),format=raw,if=none,id=drive-nvme0 \
+	-drive file=$(DISK_IMG),format=raw,if=none,id=drive-nvme0,cache=none \
 	-device nvme,serial=deadbeef,drive=drive-nvme0
 # 	-drive file=$(DISK_IMG),format=raw,if=none,id=drive-virtio0 \
 # 	-device virtio-blk-pci,drive=drive-virtio0
@@ -139,6 +142,8 @@ endif
 ifeq ($(QEMU_GDB),ON)
 override QEMU_ARGS += -s -S
 endif
+
+SHELL := /usr/bin/bash -x
 
 .PHONY: all
 all: $(DISK_IMG)
@@ -241,6 +246,9 @@ $(INITRAMFS_IMG): $(KERNEL_ELF) install-sysroot
 	@mkdir -p $(MODULES_INSTALL_DIR)
 	@-cp -r $(MODULES_DIR)/noarch/. $(MODULES_INSTALL_DIR)/
 	@-cp -r $(MODULES_DIR)/$(ILOBILIX_ARCH)/. $(MODULES_INSTALL_DIR)/
+	@cp $(MODULES_BUILTIN) $(MODULES_BUILTIN_MODINFO) $(MODULES_INSTALL_DIR)/
+	@find $(MODULES_INSTALL_DIR)/ -type f -name "*.ko" -exec basename {} \; > $(MODULES_INSTALL_DIR)/modules.order
+	depmod -b $(SYSROOT_DIR)/ $(ILOBILIX_RELEASE)
 	tar --format gnu --owner=0 --group=0 --numeric-owner \
 		--exclude='./.extracted' --exclude='./home/ilobilix' \
 		-cf $@ -C $(SYSROOT_DIR) ./
@@ -335,11 +343,25 @@ endif
 	truncate -s $(ILOBILIX_DISK_ROOT_SIZE_MB)M $(DISK_ROOT_IMG)
 	mke2fs -q -t ext2 -F -L ilobilix-root $(DISK_ROOT_IMG)
 	truncate -s $$(( ($(ILOBILIX_DISK_ESP_SIZE_MB) + $(ILOBILIX_DISK_ROOT_SIZE_MB) + 3) * 1024 * 1024 )) $(DISK_IMG)
+ifeq ($(ILOBILIX_DISK_PART_TABLE),gpt)
 	sgdisk --clear \
 		--new=1:2048:+1M --typecode=1:ef02 --change-name=1:"BIOS boot" \
+		--attributes=1:set:2 \
 		--new=2:0:+$(ILOBILIX_DISK_ESP_SIZE_MB)M --typecode=2:ef00 --change-name=2:"EFI System" \
+		--attributes=2:set:0 \
 		--new=3:0:+$(ILOBILIX_DISK_ROOT_SIZE_MB)M --typecode=3:8300 --change-name=3:"ilobilix-root" \
-		$(DISK_IMG) >/dev/null
+		$(DISK_IMG)
+else ifeq ($(ILOBILIX_DISK_PART_TABLE),mbr)
+	parted -s $(DISK_IMG) \
+		mklabel msdos \
+		mkpart primary fat32 2MiB $$(( $(ILOBILIX_DISK_ESP_SIZE_MB) + 2 ))MiB \
+		set 1 boot on \
+		type 1 0xef \
+		mkpart primary ext2 $$(( $(ILOBILIX_DISK_ESP_SIZE_MB) + 2 ))MiB 100% \
+		type 2 0x83
+else
+	$(error unsupported partition table format '$(ILOBILIX_DISK_PART_TABLE)', use 'gpt' or 'mbr')
+endif
 	dd if=$(DISK_ESP_IMG) of=$(DISK_IMG) bs=1M seek=2 conv=notrunc status=none
 	dd if=$(DISK_ROOT_IMG) of=$(DISK_IMG) bs=1M seek=$$(( $(ILOBILIX_DISK_ESP_SIZE_MB) + 2 )) conv=notrunc status=none
 ifeq ($(ILOBILIX_ARCH),x86_64)
