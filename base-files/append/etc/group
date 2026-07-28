@@ -1,1 +1,3 @@
 ilobilix:x:1000:
+dbus:x:22:
+polkitd:x:25:

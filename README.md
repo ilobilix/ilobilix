@@ -21,9 +21,14 @@ Contributors are welcome! Feel free to open issues or submit pull requests.
   * ``cmake``
   * ``ninja``
   * ``mtools``
-  * ``sgdisk``
+  * ``sgdisk`` (for gpt disks)
+  * ``parted`` (for mbr disks)
+  * ``e2fsprogs`` (for disk image)
+  * ``kmod`` (``depmod``)
+  * ``fakeroot``
   * ``xorriso`` (for iso)
   * ``qemu-system``
+  * ``qemu-user`` (for cross-arch builds. for example ``aarch64`` on ``x86_64`` host)
   * ``curl``
   * ``tar``
 * Clone this repository:
@@ -46,6 +51,7 @@ Contributors are welcome! Feel free to open issues or submit pull requests.
 * ``ILOBILIX_LTO=[ON|<OFF>]`` (Requires 'Release' build type)
 * ``ILOBILIX_LIMINE_MP=[<ON>|OFF]``
 * ``ILOBILIX_UBSAN=[ON|<OFF>]``
+* ``ILOBILIX_SCCACHE=[ON|<OFF>]``
 * ``ILOBILIX_VOID_ROOTFS_DATE=<20250202>``
 * ``ILOBILIX_VOID_INSTALL=<empty>`` (additional packages)
 * ``ILOBILIX_VOID_REMOVE=<empty>``
@@ -69,11 +75,14 @@ ilobilix/
 ├── support/               # Various files for the build system
 ```
 
-### Notable Projects Used:
+## Notable Projects Used
 * [Limine](https://codeberg.org/Limine/Limine)
-* [Void Linux](https://voidlinux.org/)
 * [uACPI](https://github.com/uACPI/uACPI)
 * [Fmtlib](https://github.com/fmtlib/fmt)
+* [Void Linux](https://voidlinux.org/)
+
+## AI usage disclosure
+LLMs have been used for gathering information, researching needed topics, fixing bugs and minimal code generation.
 
 ## Known Bugs
 * mp booting not working on ``aarch64``
