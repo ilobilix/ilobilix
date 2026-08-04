@@ -43,9 +43,20 @@ if [ -d "$src/append" ]; then
             : > "$target"
         fi
 
+        keyed=
+        case $rel in
+            etc/passwd|etc/shadow|etc/group|etc/gshadow) keyed=yes ;;
+        esac
+
         while IFS= read -r line || [ -n "$line" ]; do
             [ -z "$line" ] && continue
-            grep -qxF -- "$line" "$target" 2>/dev/null && continue
+            if [ -n "$keyed" ]; then
+                key=${line%%:*}
+                awk -F: -v k="$key" '$1 == k { found = 1 } END { exit !found }' \
+                    "$target" && continue
+            else
+                grep -qxF -- "$line" "$target" 2>/dev/null && continue
+            fi
             printf '%s\n' "$line" >> "$target"
         done < "$file"
 
