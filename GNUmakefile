@@ -130,8 +130,6 @@ override QEMU_EXEC := qemu-system-$(ILOBILIX_ARCH)
 override QEMU_ARGS += \
 	-m 4G \
 	-smp $(QEMU_SMP) \
-	-no-reboot \
-	-no-shutdown \
 	-rtc base=utc \
 	-boot order=d,menu=on,splash-time=0 \
 	-device virtio-keyboard-pci \
@@ -139,6 +137,8 @@ override QEMU_ARGS += \
 	-chardev stdio,id=char0,signal=off,mux=on \
 	-serial chardev:char0 \
 	-mon chardev=char0,mode=readline
+# 	-no-reboot \
+# 	-no-shutdown \
 
 override QEMU_DISK_ARGS := \
 	-drive file=$(DISK_IMG),format=raw,if=none,id=drive-nvme0,cache=none \
