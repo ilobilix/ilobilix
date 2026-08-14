@@ -132,8 +132,11 @@ override QEMU_ARGS += \
 	-smp $(QEMU_SMP) \
 	-rtc base=utc \
 	-boot order=d,menu=on,splash-time=0 \
+	-netdev user,id=net0 \
+	-device virtio-net-pci,netdev=net0 \
 	-device virtio-keyboard-pci \
 	-device virtio-tablet-pci \
+	-device virtio-rng-pci \
 	-chardev stdio,id=char0,signal=off,mux=on \
 	-serial chardev:char0 \
 	-mon chardev=char0,mode=readline
