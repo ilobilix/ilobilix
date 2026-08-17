@@ -131,7 +131,7 @@ override QEMU_ARGS += \
 	-m 4G \
 	-smp $(QEMU_SMP) \
 	-rtc base=utc \
-	-boot order=d,menu=on,splash-time=0 \
+	-boot menu=on,splash-time=0 \
 	-netdev user,id=net0 \
 	-device virtio-net-pci,netdev=net0 \
 	-device virtio-keyboard-pci \
@@ -144,10 +144,15 @@ override QEMU_ARGS += \
 # 	-no-shutdown \
 
 override QEMU_DISK_ARGS := \
-	-drive file=$(DISK_IMG),format=raw,if=none,id=drive-nvme0,cache=none \
-	-device nvme,serial=deadbeef,drive=drive-nvme0
+	-drive file=$(DISK_IMG),format=raw,if=none,id=nvme0,cache=none \
+	-device nvme,serial=disk,drive=nvme0
 # 	-drive file=$(DISK_IMG),format=raw,if=none,id=drive-virtio0 \
 # 	-device virtio-blk-pci,drive=drive-virtio0
+
+override QEMU_ISO_ARGS := \
+	-device virtio-scsi-pci,id=scsi0 \
+	-drive file=$(ISO_IMG),format=raw,readonly=on,media=cdrom,if=none,id=cd0 \
+	-device scsi-cd,drive=cd0,bus=scsi0.0,bootindex=1
 
 ifeq ($(ILOBILIX_ARCH),x86_64)
 override QEMU_ARGS += \
@@ -570,7 +575,7 @@ run-bios:
 run-iso: run-iso-uefi
 
 run-iso-uefi:
-	$(QEMU_EXEC) $(QEMU_ARGS) -bios $(OVMF_BIN) -cdrom $(ISO_IMG)
+	$(QEMU_EXEC) $(QEMU_ARGS) $(QEMU_ISO_ARGS) -bios $(OVMF_BIN)
 
 run-iso-bios:
-	$(QEMU_EXEC) $(QEMU_ARGS) -cdrom $(ISO_IMG)
+	$(QEMU_EXEC) $(QEMU_ARGS) $(QEMU_ISO_ARGS)
