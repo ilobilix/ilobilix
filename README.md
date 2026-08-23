@@ -9,7 +9,16 @@ Contributors are welcome! Feel free to open issues or submit pull requests.
 
 ## License: [EUPL v1.2](LICENSE)
 
-![x86_64](screenshots/x86_64.png "x86_64")
+## Screenshots
+<details>
+<summary>Click here to expand</summary>
+
+![tty](screenshots/tty.png)
+![factorio](screenshots/factorio.png)
+![supertuxkart](screenshots/supertuxkart.png)
+![winecfg](screenshots/winecfg.png)
+
+</details>
 
 ## Building And Running
 * Make sure you are running an up-to-date Linux system and have following programs installed:
@@ -59,6 +68,8 @@ Contributors are welcome! Feel free to open issues or submit pull requests.
 
 ### Run-Only Options
 * ``QEMU_SMP=<6>``
+* ``QEMU_MEM=<4G>``
+* ``QEMU_NET=[<user>|tap|none]`` (``tap`` requires manually running ``support/tap.sh`` with sudo)
 * ``QEMU_ACCEL=[<ON>|OFF]``
 * ``QEMU_LOG=[ON|<OFF>]``
 * ``QEMU_GDB=[ON|<OFF>]``
@@ -82,7 +93,7 @@ ilobilix/
 * [Void Linux](https://voidlinux.org/)
 
 ## AI usage disclosure
-LLMs have been used for gathering information, researching needed topics, fixing bugs and minimal code generation.
+LLMs have been used for gathering information, researching needed topics, fixing bugs and minimal code generation (e.g. makefile build system in this repo).
 
 ## Known Bugs
 * mp booting not working on ``aarch64``

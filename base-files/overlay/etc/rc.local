@@ -1,0 +1,33 @@
+#!/bin/sh
+
+[ -r /etc/network.conf ] && . /etc/network.conf
+
+: "${NET_INTERFACE:=eth0}"
+: "${NET_NETMASK:=255.255.255.0}"
+: "${NET_WAIT:=5}"
+
+ifconfig lo 127.0.0.1 netmask 255.0.0.0 up || echo "rc.local: failed to configure lo" >&2
+
+[ -n "${NET_ADDRESS:-}" ] || exit 0
+
+waited=0
+while [ ! -e "/sys/class/net/$NET_INTERFACE" ]; do
+    if [ "$waited" -ge "$NET_WAIT" ]; then
+        echo "rc.local: $NET_INTERFACE never appeared, skipping network setup" >&2
+        exit 0
+    fi
+    waited=$((waited + 1))
+    sleep 1
+done
+
+echo "rc.local: configuring $NET_INTERFACE as $NET_ADDRESS/$NET_NETMASK"
+if ! ifconfig "$NET_INTERFACE" "$NET_ADDRESS" netmask "$NET_NETMASK" up; then
+    echo "rc.local: failed to configure $NET_INTERFACE" >&2
+    exit 0
+fi
+
+if [ -n "${NET_GATEWAY:-}" ]; then
+    route add default gw "$NET_GATEWAY" || echo "rc.local: failed to add default route via $NET_GATEWAY" >&2
+fi
+
+exit 0

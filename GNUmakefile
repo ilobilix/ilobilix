@@ -15,7 +15,7 @@ ILOBILIX_DISK_PART_TABLE ?= gpt
 ILOBILIX_ROOT_FSTYPE ?= ext2
 
 ILOBILIX_VOID_ROOTFS_DATE ?= 20250202
-ILOBILIX_VOID_INSTALL ?=
+ILOBILIX_VOID_INSTALL ?= gdbm-devel libxcrypt-devel net-tools
 ILOBILIX_VOID_REMOVE ?=
 
 ILOBILIX_FAKEROOT_BIN ?= $(if $(shell command -v fakeroot-sysv 2>/dev/null),fakeroot-sysv,fakeroot)
@@ -24,6 +24,8 @@ QEMU_ACCEL ?= ON
 QEMU_LOG ?= OFF
 QEMU_GDB ?= OFF
 QEMU_SMP ?= 6
+QEMU_MEM ?= 4G
+QEMU_NET ?= user
 
 override SOURCE_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 override KERNEL_SOURCE_DIR := $(SOURCE_DIR)/kernel
@@ -126,14 +128,27 @@ ifeq ($(ILOBILIX_ARCH),aarch64)
 override OVMF_BIN := $(OVMF_DIR)/OVMF_AA64.fd
 endif
 
+ifeq ($(QEMU_NET),user)
+override QEMU_NET_ARGS := \
+	-netdev user,id=net0,hostfwd=tcp:127.0.0.1:5555-10.0.2.15:22 \
+	-device virtio-net-pci,netdev=net0,mac=52:54:00:12:34:56
+else ifeq ($(QEMU_NET),tap)
+override QEMU_NET_ARGS := \
+	-netdev tap,id=net0,ifname=tap0,script=no,downscript=no,queues=4 \
+	-device virtio-net-pci,netdev=net0,mq=on,vectors=10,mac=52:54:00:12:34:56
+else ifeq ($(QEMU_NET),none)
+override QEMU_NET_ARGS :=
+else
+$(error invalid QEMU_NET '$(QEMU_NET)')
+endif
+
 override QEMU_EXEC := qemu-system-$(ILOBILIX_ARCH)
 override QEMU_ARGS += \
-	-m 4G \
+	-m $(QEMU_MEM) \
 	-smp $(QEMU_SMP) \
 	-rtc base=utc \
 	-boot menu=on,splash-time=0 \
-	-netdev user,id=net0 \
-	-device virtio-net-pci,netdev=net0 \
+	$(QEMU_NET_ARGS) \
 	-device virtio-keyboard-pci \
 	-device virtio-tablet-pci \
 	-device virtio-rng-pci \
