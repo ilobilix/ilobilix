@@ -74,18 +74,6 @@ Contributors are welcome! Feel free to open issues or submit pull requests.
 * ``QEMU_LOG=[ON|<OFF>]``
 * ``QEMU_GDB=[ON|<OFF>]``
 
-### Directory Structure
-```text
-ilobilix/
-├── kernel/                # Ilobilix kernel repository
-├──── kernel/kernel/       # ─ Kernel source code
-├──── kernel/modules/      # ─ Loadable kernel modules
-├── base-files/            # Customisations applied on top of the Void rootfs
-├──── base-files/overlay/  # ─ Files copied onto the sysroot
-├──── base-files/append/   # ─ Files that are appended to the ones in the sysroot
-├── support/               # Various files for the build system
-```
-
 ## Notable Projects Used
 * [Limine](https://codeberg.org/Limine/Limine)
 * [uACPI](https://github.com/uACPI/uACPI)
