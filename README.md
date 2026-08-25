@@ -13,10 +13,11 @@ Contributors are welcome! Feel free to open issues or submit pull requests.
 <details>
 <summary>Click here to expand</summary>
 
-![tty](screenshots/tty.png)
+![minecraft](screenshots/minecraft.png)
 ![factorio](screenshots/factorio.png)
 ![supertuxkart](screenshots/supertuxkart.png)
 ![winecfg](screenshots/winecfg.png)
+![tty](screenshots/tty.png)
 
 </details>
 
